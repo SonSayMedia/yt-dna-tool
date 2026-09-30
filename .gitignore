@@ -1,0 +1,20 @@
+# Moi truong ao + cache
+venv/
+__pycache__/
+*.pyc
+
+# KHOA / KEY (KHONG BAO GIO day len)
+config.json
+
+# Du lieu ca nhan (moi may tu tao)
+dna_profiles.json
+profiles.json
+seen.json
+used.json
+title_history.json
+*.bak
+
+# File tam / demo / ghi chu noi bo
+DEMO_prompts.txt
+CLAUDE.md
+KE HOACH - XUONG SAN XUAT.md

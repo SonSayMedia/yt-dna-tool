@@ -1,0 +1,20 @@
+{
+  "_huong_dan": "Copy file nay thanh 'config.json' roi dien 2 KEY (llm_api_key + youtube_api_key). KHONG chia se config.json.",
+
+  "llm_base_url": "http://127.0.0.1:20128/v1",
+  "llm_api_key": "DAN_KEY_9ROUTER_VAO_DAY",
+  "llm_model": "ag/gemini-3.8-flash-medium",
+  "llm_vision_model": "ag/gemini-3.8-flash-medium",
+
+  "youtube_api_key": "DAN_YOUTUBE_DATA_API_V3_KEY_VAO_DAY",
+
+  "_ghi_chu": {
+    "llm_base_url": "Endpoint 9router chay local.",
+    "llm_model": "Model cho viec chu. Muc suy luan = duoi ten: -high / -medium / -low. VD: ag/gemini-3.8-flash-high.",
+    "llm_vision_model": "Model co 'mat' (nhin anh de rut DNA). De giong llm_model la duoc (Gemini Flash da co vision).",
+    "youtube_api_key": "Lay tai https://console.cloud.google.com -> bat 'YouTube Data API v3' -> tao API key.",
+    "cac_model_co_san": [
+      "ag/gemini-3.8-flash-high", "ag/gemini-3.8-flash-medium", "ag/gemini-3.8-flash-low", "ag/gemini-3.8-flash"
+    ]
+  }
+}

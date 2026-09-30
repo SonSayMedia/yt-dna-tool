@@ -1,0 +1,1470 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YT DNA Tool</title>
+<style>
+  :root{--bg:#0f1216;--card:#181d24;--line:#2a323d;--txt:#e6e9ee;--mut:#9aa4b2;--acc:#ff4d4f;--acc2:#3ba55d;--side:#12161c;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 system-ui,Segoe UI,Roboto,Arial;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+  /* thanh tren cung */
+  header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:16px;
+    padding:12px 20px;background:var(--side);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;white-space:nowrap}
+  .pills{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .statuspill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);
+    background:#0f141a;border:1px solid var(--line);border-radius:20px;padding:4px 10px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#666}
+  .dot.on{background:var(--acc2)} .dot.off{background:var(--acc)}
+
+  /* menu chinh NGANG tren header */
+  .mainnav{display:flex;gap:6px;flex-wrap:wrap}
+  .nav-btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;
+    background:transparent;color:var(--mut);border-radius:9px;padding:8px 15px;font-size:14px;font-weight:600}
+  .nav-btn:hover{background:#232b35;color:var(--txt)}
+  .nav-btn.active{background:var(--acc);color:#fff}
+  .nav-btn .ic{font-size:16px}
+  /* than: panel = menu doc trai (submenu) + noi dung (pcontent) */
+  .body{flex:1;min-height:0}
+  .panel{display:none;height:100%} .panel.active{display:flex;height:100%}
+  .submenu{width:238px;flex-shrink:0;background:var(--side);border-right:1px solid var(--line);padding:16px 10px;overflow:auto}
+  .smlbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:2px 8px 12px;font-weight:700}
+  .sub-btn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;cursor:pointer;
+    background:transparent;color:var(--txt);border-radius:10px;padding:12px 12px;font-size:13.5px;margin-bottom:5px;line-height:1.3;font-weight:500}
+  .sub-btn:hover{background:#232b35}
+  .sub-btn.active{background:var(--acc);color:#fff;font-weight:600}
+  .sub-btn .ic{font-size:17px;flex-shrink:0}
+  .pcontent{flex:1;min-width:0;overflow:auto;padding:22px 26px}
+  .subview{display:none} .subview.active{display:block}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h3{margin:0 0 12px;font-size:14px}
+  .step{display:inline-block;background:var(--acc);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px;margin-right:6px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
+  input,select{background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px}
+  input{min-width:200px}
+  button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer}
+  button.ghost{background:#232b35} button:disabled{opacity:.5;cursor:progress}
+  .seg{display:inline-flex;gap:6px;margin:2px 0 14px;flex-wrap:wrap;background:var(--side);border:1px solid var(--line);border-radius:10px;padding:4px}
+  .seg button{background:transparent;color:var(--mut);padding:8px 16px;border-radius:7px}
+  .seg button.on{background:var(--acc);color:#fff}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:left;vertical-align:top}
+  th{background:#141a21;color:var(--mut);font-weight:600}
+  .views{color:var(--acc2);font-weight:700;white-space:nowrap}
+  .new{color:#ffd24d;font-weight:600}
+  .tblscroll{overflow-x:auto}
+  .ttedit{width:100%;min-width:170px;min-height:56px;resize:vertical;background:#141a10;border:1px solid #3a4a2a;
+    color:#ffe4a3;border-radius:8px;padding:6px 8px;font:13px/1.45 system-ui;font-weight:600}
+  .ttedit:focus{outline:none;border-color:#ffd24d}
+  .ccbox{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .thumbbox{border-top:1px dashed var(--line);margin-top:8px;padding-top:4px}
+  .sugbox{position:absolute;top:100%;left:0;right:0;z-index:30;margin-top:2px;background:#0f141a;
+    border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .sugitem{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid #1c232c}
+  .sugitem:last-child{border-bottom:0}
+  .sugitem:hover,.sugitem.on{background:#232b35}
+  .sugitem b{color:var(--mut);font-weight:400}
+  .kwchip{display:inline-block;background:#232b35;border:1px solid var(--line);border-radius:20px;
+    padding:5px 12px;margin:3px;font-size:13px;cursor:pointer}
+  .kwchip:hover{background:#2f3a47;border-color:#4a5a6a}
+  .prog{height:9px;background:#1c232c;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-top:12px}
+  .progbar{height:100%;width:0;background:linear-gradient(90deg,var(--acc),#ff9a6b);transition:width .3s ease}
+  .progtxt{margin-top:6px}
+  .chk{min-width:auto;width:16px;height:16px;padding:0;accent-color:var(--acc)}
+  .optlabel{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;color:var(--txt);font-size:13px}
+  .muted{color:var(--mut);font-size:12px}
+  .pill{display:inline-block;background:#232b35;border-radius:20px;padding:2px 9px;font-size:11px;margin:2px 4px 2px 0}
+  pre{background:#0f141a;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:280px;font-size:12px;white-space:pre-wrap}
+  .err{color:#ff8080;white-space:pre-wrap}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:#2a2130;color:#ffb3c1}
+  a{color:#7bb7ff}
+  .libitem{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .libitem .meta{min-width:0}
+  .libitem .nm{font-weight:600}
+  .banner-ok{background:#12331f;border:1px solid #2f7a4d;border-radius:8px;padding:10px;color:#b6f2cf}
+  .banner-warn{background:#3a2020;border:1px solid #7a3030;border-radius:8px;padding:10px;color:#ffcaca}
+
+  @media(max-width:760px){
+    body{overflow:auto;height:auto;min-height:100vh}
+    header{flex-wrap:wrap}
+    .panel.active{flex-direction:column;height:auto}
+    .submenu{width:100%;display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}
+    .submenu .smlbl{display:none}
+    .sub-btn{width:auto;white-space:nowrap;margin-bottom:0}
+    .pcontent{padding:14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧬 YT DNA Tool</h1>
+  <nav class="mainnav">
+    <button class="nav-btn active" data-tab="title"><span class="ic">📝</span> Tiêu đề</button>
+    <button class="nav-btn" data-tab="ai" style="display:none"><span class="ic">🤖</span> AI</button>
+    <button class="nav-btn" data-tab="bancontent" style="display:none"><span class="ic">🎞️</span> Bán Content</button>
+    <button class="nav-btn" data-tab="library"><span class="ic">📚</span> Thư viện</button>
+    <button class="nav-btn" data-tab="settings"><span class="ic">⚙️</span> Cài đặt</button>
+  </nav>
+  <div class="pills">
+    <span class="statuspill"><span id="dotLlm" class="dot"></span> 9router <span id="pillLlm">…</span></span>
+    <span class="statuspill"><span id="dotYt" class="dot"></span> YouTube <span id="pillYt">…</span></span>
+  </div>
+</header>
+
+<div class="body">
+  <datalist id="projList"></datalist>
+    <!-- ============ TAB TIEU DE ============ -->
+    <section class="panel active" id="p-title">
+      <aside class="submenu"></aside>
+      <div class="pcontent">
+      <div class="subview active" data-order="1" data-name="Phân tích DNA kênh" data-ic="🧬">
+      <div class="card">
+        <h3><span class="step">Bước 1</span> Phân tích kênh → rút khuôn tiêu đề</h3>
+        <div class="row">
+          <div><label>Link kênh YouTube (đối thủ / kênh follow)</label>
+            <input id="chUrl" placeholder="https://www.youtube.com/@tenkenh"></div>
+          <div><label>Đặt tên Dự Án</label><input id="chName" placeholder="VD: Kênh tâm lý A" list="projList"></div>
+          <button id="btnAnalyze">Phân tích 20 video top view</button>
+        </div>
+        <div id="analyzeOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-order="3" data-name="Quét từ khóa → tái tạo" data-ic="🔎">
+      <div class="card">
+        <h3><span class="step">Bước 2</span> Quét từ khóa → tái tạo tiêu đề</h3>
+        <div class="row">
+          <div style="position:relative"><label>Từ khóa</label>
+            <input id="kw" placeholder="VD: thao túng tâm lý" autocomplete="off">
+            <div id="kwSug" class="sugbox" hidden></div></div>
+          <div><label>Chế độ</label>
+            <select id="mode">
+              <option value="normal">Thường (theo mốc thời gian)</option>
+              <option value="trend48h">Trend 48h (video mới ≤48h)</option>
+            </select></div>
+          <div><label>Loại video</label>
+            <select id="videoType">
+              <option value="both" selected>Cả hai</option>
+              <option value="long">Video dài (không short)</option>
+              <option value="short">Video short (dọc)</option>
+            </select></div>
+          <div id="wWrap"><label>Mốc thời gian</label>
+            <select id="window">
+              <option value="1m">1 tháng</option><option value="3m">3 tháng</option><option value="6m">6 tháng</option>
+              <option value="1y" selected>1 năm</option><option value="2y">2 năm</option><option value="3y">3 năm</option>
+            </select></div>
+          <div><label>Số video</label><input id="count" type="number" value="10" min="1" max="50" style="min-width:80px"></div>
+          <div><label>Ngôn ngữ tái tạo</label>
+            <select id="outLang">
+              <option value="vi">Tiếng Việt</option><option value="en">English</option>
+              <option value="zh">中文</option><option value="ja">日本語</option>
+              <option value="ko">한국어</option><option value="th">ไทย</option>
+            </select></div>
+          <div><label>Dự án áp dụng</label><select id="profileSel"><option value="">(công thức chung)</option></select></div>
+          <button id="btnScan">Quét & tái tạo</button>
+        </div>
+        <div class="row" style="margin-top:10px;align-items:center;gap:16px">
+          <label class="optlabel"><input type="checkbox" id="hideUsed" class="chk" checked> Ẩn video đã dùng (từ khóa này)</label>
+          <label class="optlabel"><input type="checkbox" id="hideSeen" class="chk"> Ẩn cả video đã từng quét (từ khóa này)</label>
+          <button id="btnResetSeen" class="ghost" style="padding:4px 10px;font-size:12px">↺ Đặt lại lịch sử quét từ khóa này</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="btnIdeas" class="ghost">💡 Gợi ý thêm từ khóa (nghiên cứu như YouTube)</button>
+        </div>
+        <div id="kwIdeas"></div>
+        <div id="scanNote" class="muted"></div>
+        <div id="scanOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-order="4" data-name="Viết lại tiêu đề" data-ic="✍️">
+      <div class="card">
+        <h3>✍️ Viết lại tiêu đề bất kỳ theo DNA kênh</h3>
+        <p class="muted" style="margin-top:0">Dán <b>tiêu đề</b> hoặc <b>link video YouTube</b> (mỗi dòng 1 cái, trộn được) → chọn khuôn DNA → viết lại theo phong cách kênh anh. Link sẽ tự lấy tiêu đề gốc.</p>
+        <div class="row" style="align-items:flex-end">
+          <div><label>Khuôn DNA áp dụng</label><select id="rwProfile"><option value="">(công thức chung)</option></select></div>
+          <div><label>Ngôn ngữ viết lại</label>
+            <select id="rwLang">
+              <option value="vi">Tiếng Việt</option><option value="en">English</option>
+              <option value="zh">中文</option><option value="ja">日本語</option>
+              <option value="ko">한국어</option><option value="th">ไทย</option>
+            </select></div>
+          <button id="btnRewrite">✍️ Viết lại theo DNA</button>
+        </div>
+        <label style="display:block;margin-top:8px">Tiêu đề / link YouTube — mỗi dòng 1 cái</label>
+        <textarea id="rwInputs" style="width:100%;min-height:120px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font:13px/1.6 system-ui;resize:vertical" placeholder="Cách Nhận Biết Người Nói Dối Trong 3 Giây&#10;https://www.youtube.com/watch?v=xxxxxxxxxxx&#10;5 Dấu Hiệu Bạn Đang Bị Thao Túng"></textarea>
+        <div id="rwNote" class="muted" style="margin-top:6px"></div>
+        <div id="rwOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-order="7" data-name="Lịch sử tiêu đề" data-ic="🕘" data-onshow="loadTitleHist">
+      <div class="card">
+        <h3>🕘 Lịch sử viết lại tiêu đề
+          <button id="btnHistClear" class="ghost" style="float:right;padding:4px 10px;font-size:12px;background:#5a2a2a">🗑 Xoá tất cả</button></h3>
+        <p class="muted" style="margin-top:0">Mỗi lần bấm <b>"Viết lại theo DNA"</b> kết quả tự lưu vào đây. Tìm lại tiêu đề + ý tưởng (<b>vì sao chọn</b>) bất cứ lúc nào.</p>
+        <input id="histSearch" style="width:100%;margin-bottom:6px" placeholder="🔎 Gõ để tìm trong tiêu đề gốc / tiêu đề viết lại / bản dịch / lý do…">
+        <div id="histCount" class="muted" style="margin-bottom:8px"></div>
+        <div id="histOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-order="2" data-name="Quét ảnh thumb" data-ic="🖼️">
+      <div class="card">
+        <h3><span class="step">Bước 1</span> Tạo hồ sơ DNA phong cách</h3>
+        <p class="muted" style="margin-top:0">Đưa ảnh/link vào → phân tích → <b>đặt tên & lưu</b>. Kết quả vào Thư viện và tự chọn sẵn cho Bước 2. (Chỉ cần làm 1 lần cho mỗi phong cách.)</p>
+        <div class="row">
+          <div><label>① Ảnh THUMBNAIL mẫu</label><input id="dnaThumbs" type="file" accept="image/*" multiple></div>
+          <div><label>① Ảnh NỘI DUNG mẫu</label><input id="dnaContents" type="file" accept="image/*" multiple></div>
+          <div><label>② Dự án (chọn dự án đã có hoặc nhập mới)</label><input id="dnaName" placeholder="Chọn/nhập tên dự án" list="projList"></div>
+          <button id="btnDna">③ Phân tích &amp; Lưu DNA</button>
+        </div>
+        <div class="row" style="margin-top:6px;border-top:1px dashed var(--line);padding-top:12px">
+          <div style="flex:1"><label>…hoặc DÁN LINK KÊNH hoặc VIDEO (tự phân tích thumbnail + khung hình) — nhớ chọn/nhập dự án ở ô ②</label>
+            <input id="dnaVideoUrl" style="width:100%" placeholder="Link kênh (@ten) hoặc link video (watch?v=...)"></div>
+          <div><label>Số khung</label><input id="dnaFrames" type="number" value="10" min="4" max="16" style="min-width:80px"></div>
+          <button id="btnDnaVideo">Phân tích link &amp; Lưu DNA</button>
+        </div>
+        <div id="dnaOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-order="5" data-name="Tiêu đề → Prompt Thumbnail" data-ic="🖌️" data-onshow="loadDna">
+        <div class="seg" data-toggle="aithumb">
+          <button type="button" class="on" data-m="single">📄 Tạo đơn</button>
+          <button type="button" data-m="batch" data-onshow="atbRestore">🚀 Tạo hàng loạt</button>
+        </div>
+        <div id="aithumb-single">
+          <div class="card">
+            <h3>🖼️ Tiêu đề → prompt thumbnail (theo DNA, không cần SRT)</h3>
+            <p class="muted" style="margin-top:0">Chọn dự án đã có DNA + nhập tiêu đề bất kỳ → ra <b>1 prompt thumbnail</b> đúng phong cách kênh (bám <b>font/màu chữ trong DNA</b> + hook ngắn). Dùng cho Google Flow / ChatGPT.</p>
+            <div class="row">
+              <div><label>Dùng dự án nào? (đã có DNA)</label>
+                <select id="aiThumbSel"><option value="">(chưa có — dùng phong cách chung)</option></select></div>
+              <div style="flex:1"><label>Tiêu đề (nhập bất kỳ)</label>
+                <input id="aiThumbTitle" style="width:100%" placeholder="VD: Bí Mật Của Vũ Trụ Mà NASA Giấu Kín"></div>
+              <button id="btnAiThumb">Sinh prompt thumbnail</button>
+            </div>
+            <div id="aiThumbOut"></div>
+          </div>
+        </div>
+        <div id="aithumb-batch" hidden>
+          <div class="card">
+            <h3>🚀 Tiêu đề → prompt thumbnail — HÀNG LOẠT</h3>
+            <p class="muted" style="margin-top:0">Dán danh sách tiêu đề (mỗi dòng 1 cái) <b>hoặc</b> tải file <b>.txt</b> → chọn dự án → chạy luân phiên → ra <b>prompt thumbnail theo đúng thứ tự tiêu đề</b>. Chạy nền, lỗi 1 dòng bỏ qua chạy tiếp; tạm dừng/tiếp tục được.</p>
+            <div class="row" style="align-items:flex-end">
+              <div><label>Dùng dự án nào? (đã có DNA)</label>
+                <select id="atbSel"><option value="">(chưa có — dùng phong cách chung)</option></select></div>
+              <div><label>Tải file .txt tiêu đề</label><input id="atbFile" type="file" accept=".txt,text/plain"></div>
+            </div>
+            <label style="display:block;margin-top:8px">Hoặc dán tiêu đề vào đây — mỗi dòng 1 cái</label>
+            <textarea id="atbInputs" style="width:100%;min-height:130px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font:13px/1.6 system-ui;resize:vertical" placeholder="Bí Mật Của Vũ Trụ Mà NASA Giấu Kín&#10;5 Dấu Hiệu Cho Thấy Bạn Đang Bị Thao Túng&#10;Vì Sao Người Thành Công Luôn Dậy Sớm"></textarea>
+            <div class="row" style="margin-top:10px">
+              <button id="btnAtbStart">▶ Sinh prompt hàng loạt</button>
+              <button id="btnAtbPause" class="ghost" style="display:none">⏸ Tạm dừng</button>
+              <button id="btnAtbResume" class="ghost" style="display:none">▶ Tiếp tục</button>
+              <button id="btnAtbStop" class="ghost" style="display:none">⏹ Dừng</button>
+              <button id="btnAtbCopy" class="ghost" style="display:none">📋 Copy tất cả</button>
+              <button id="btnAtbExport" class="ghost" style="display:none">⬇ Tải .txt</button>
+              <button id="btnAtbSheet" class="ghost" style="display:none;background:#1e4620;border-color:#2c6e30">📊 Gửi lên Google Sheet</button>
+            </div>
+            <div id="atbProg" style="margin-top:10px"></div>
+            <div id="atbNote" class="muted" style="margin-top:6px"></div>
+            <div class="tblscroll" style="margin-top:10px"><table id="atbTable" style="display:none"><thead><tr>
+              <th style="width:34px">#</th><th style="min-width:220px">Tiêu đề</th><th>Prompt thumbnail (EN)</th><th style="width:96px"></th>
+            </tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB BAN CONTENT ============ -->
+    <section class="panel" id="p-bancontent">
+      <datalist id="bcList"></datalist>
+      <aside class="submenu"></aside>
+      <div class="pcontent">
+      <div class="subview active" data-name="Tạo DNA thumbnail" data-ic="🧬">
+      <div class="card">
+        <h3><span class="step">Bước 1</span> Tạo hồ sơ DNA thumbnail</h3>
+        <p class="muted" style="margin-top:0">Chỉ cần ảnh thumbnail (không cần ảnh nội dung). Tải ảnh mẫu HOẶC dán link kênh.</p>
+        <div class="row">
+          <div><label>Ảnh THUMBNAIL mẫu</label><input id="bcThumbs" type="file" accept="image/*" multiple></div>
+          <div><label>Tên dự án</label><input id="bcName" placeholder="Chọn/nhập tên dự án" list="bcList"></div>
+          <button id="btnBc">Phân tích &amp; Lưu DNA</button>
+        </div>
+        <div class="row" style="margin-top:6px;border-top:1px dashed var(--line);padding-top:12px">
+          <div style="flex:1"><label>…hoặc DÁN LINK KÊNH / VIDEO (chỉ lấy thumbnail) — nhớ đặt tên ở ô trên</label>
+            <input id="bcVideoUrl" style="width:100%" placeholder="Link kênh (@ten) hoặc link video"></div>
+          <button id="btnBcVideo">Phân tích link &amp; Lưu DNA</button>
+        </div>
+        <div id="bcOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-name="Tiêu đề → prompt" data-ic="🖼️">
+      <div class="card">
+        <h3>🖼️ Tiêu đề → prompt thumbnail (1 tiêu đề · 3 phương án)</h3>
+        <div id="bcSingle">
+          <div class="row">
+            <div><label>Dự án (đã tạo ở Bước 1)</label><select id="bcSel"><option value="">(chọn dự án)</option></select></div>
+            <div style="flex:1"><label>Tiêu đề (nhập bất kỳ)</label><input id="bcTitle" style="width:100%" placeholder="VD: Nơi Nguy Hiểm Nhất Hành Tinh Mà Bạn Chưa Từng Nghe"></div>
+            <button id="btnBcDecompose">① Bóc tách tiêu đề</button>
+          </div>
+          <div id="bcDecomposeBox"></div>
+          <div id="bcThumbOut"></div>
+        </div>
+      </div>
+      </div>
+      <div class="subview" data-name="Hàng loạt tiêu đề" data-ic="🚀" data-onshow="loadBc">
+      <div class="card">
+        <h3>🚀 Hàng loạt tiêu đề</h3>
+        <div id="bcBatch">
+          <p class="muted" style="margin-top:0">Dán <b>nhiều tiêu đề</b> (mỗi dòng 1 cái) → mỗi tiêu đề ra <b>1 prompt thumbnail tốt nhất</b> (chủ thể &gt;70%, bố cục điện ảnh, KHÔNG chữ — tự thêm bằng Photoshop). Chạy luân phiên.</p>
+          <div class="row" style="align-items:flex-end">
+            <div><label>Dự án (DNA thumbnail)</label><select id="bcBatchSel"><option value="">(chọn dự án)</option></select></div>
+          </div>
+          <label style="display:block;margin-top:8px">Danh sách tiêu đề — mỗi dòng 1 tiêu đề</label>
+          <textarea id="bcBatchTitles" style="width:100%;min-height:140px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font:13px/1.6 system-ui;resize:vertical" placeholder="Nơi Nguy Hiểm Nhất Hành Tinh&#10;Bí Mật Ít Người Biết Về...&#10;5 Dấu Hiệu Bạn Đang..."></textarea>
+          <div class="row" style="margin-top:10px">
+            <button id="btnBcBatchStart">▶ Tạo prompt hàng loạt</button>
+            <button id="btnBcBatchStop" class="ghost" hidden>⏹ Dừng</button>
+            <button id="btnBcBatchExport" class="ghost" hidden>⬇ Tải tất cả (.txt)</button>
+            <button id="btnBcBatchCopy" class="ghost" hidden>Copy tất cả</button>
+          </div>
+          <div id="bcBatchProg" style="margin-top:10px"></div>
+          <div class="tblscroll" style="margin-top:10px">
+            <table id="bcBatchTable" hidden><thead><tr>
+              <th style="width:34px">#</th><th style="min-width:160px">Tiêu đề</th>
+              <th style="width:70px">Vị trí</th><th>Prompt thumbnail (EN)</th><th style="width:110px">Trạng thái</th>
+            </tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB THU VIEN ============ -->
+    <section class="panel" id="p-library">
+      <aside class="submenu"></aside>
+      <div class="pcontent">
+      <div class="subview active" data-name="Khuôn tiêu đề" data-ic="📝" data-onshow="loadLibrary">
+      <div class="card">
+        <h3>📝 Khuôn tiêu đề <button id="btnLibReload" class="ghost" style="float:right;padding:4px 10px;font-size:12px">Làm mới</button></h3>
+        <div id="libKhuon"><p class="muted">Đang tải…</p></div>
+      </div>
+      </div>
+      <div class="subview" data-name="DNA ảnh thumb" data-ic="🖼️">
+      <div class="card">
+        <h3>🖼️ DNA ảnh thumb <span class="muted" style="font-weight:400">— phong cách thumbnail đã lưu theo kênh</span></h3>
+        <div id="libAi"><p class="muted">Đang tải…</p></div>
+      </div>
+      </div>
+      <div class="subview" data-off data-name="Dự án Bán Content" data-ic="🎞️">
+      <div class="card">
+        <h3>🎞️ Dự án Bán Content <span class="muted" style="font-weight:400">— chỉ DNA thumbnail</span></h3>
+        <div id="libBc"><p class="muted">Đang tải…</p></div>
+      </div>
+      </div>
+      <div class="subview" data-off data-name="Nhật ký đã dùng" data-ic="🕘">
+      <div class="card">
+        <h3>📌 Tiêu đề đã dùng (nhật ký sản xuất)</h3>
+        <p class="muted" style="margin-top:0">Các tiêu đề anh đã bấm "Sử dụng". Video đã dùng sẽ không hiện lại khi quét CÙNG từ khóa. Bỏ đánh dấu để cho phép xuất hiện lại.</p>
+        <div id="libUsed"><p class="muted">Đang tải…</p></div>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB CAI DAT ============ -->
+    <section class="panel" id="p-settings">
+      <aside class="submenu"></aside>
+      <div class="pcontent">
+      <div class="subview active" data-name="API & Model" data-ic="🔑">
+      <div class="card">
+        <div id="cfgBanner"></div>
+        <div class="row">
+          <div style="flex:1;min-width:260px"><label>Key 9router (llm_api_key)</label>
+            <input id="cfgLlmKey" type="password" style="width:100%" placeholder="dán key 9router…"></div>
+          <div style="flex:1;min-width:260px"><label>YouTube Data API v3 key (dạng AIza...)</label>
+            <input id="cfgYtKey" type="password" style="width:100%" placeholder="dán YouTube API key…"></div>
+          <div><label>Model Phân tích &amp; Nhìn ảnh <span class="muted" style="font-weight:400">(khuyên Gemini)</span></label>
+            <select id="cfgModelAnalyze"></select></div>
+          <div><label>Model Sáng tạo <span class="muted" style="font-weight:400">(tiêu đề &amp; prompt)</span></label>
+            <select id="cfgModelCreate"></select></div>
+          <div><label>Suy luận (Thinking)</label>
+            <select id="cfgReasoning">
+              <option value="auto" selected>Auto (mặc định)</option>
+              <option value="minimal">Minimal</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="max">Max</option>
+              <option value="xhigh">Xhigh</option>
+            </select></div>
+          <button id="btnCfg">Lưu cài đặt</button>
+          <button id="btnCheck" class="ghost">Kiểm tra kết nối API</button>
+        </div>
+        <div id="cfgSaved"></div>
+        <div id="checkOut"></div>
+      </div>
+      </div>
+      <div class="subview" data-name="Google Sheet" data-ic="📊" data-onshow="loadConfig">
+      <div class="card">
+        <h3>📊 Kết nối Google Sheet <span class="muted" style="font-weight:400">— tự điền tiêu đề + prompt thumb vào bảng của anh</span></h3>
+        <p class="muted" style="margin-top:0">Dán <b>link "cổng" Apps Script</b> (xem hướng dẫn bên dưới). Khi bấm <b>"Làm thumb cả loạt"</b>, tool điền vào sheet: STT · tiêu đề tiếng Anh · tiếng Việt · link video · prompt thumb.</p>
+        <div class="row" style="align-items:flex-end">
+          <div style="flex:1;min-width:320px"><label>Link cổng Google Sheet (Apps Script …/exec)</label>
+            <input id="cfgSheetUrl" style="width:100%" placeholder="https://script.google.com/macros/s/..../exec"></div>
+          <label class="optlabel" style="white-space:nowrap"><input type="checkbox" id="cfgSheetAuto" class="chk"> Tự động gửi sau khi làm thumb</label>
+          <button id="btnSaveSheet">Lưu link</button>
+          <button id="btnTestSheet" class="ghost">Gửi thử 1 dòng</button>
+        </div>
+        <div id="sheetSaved" class="muted" style="margin-top:6px"></div>
+        <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--acc)">📖 Cách tạo "cổng" (làm 1 lần ~2 phút)</summary>
+          <ol class="muted" style="line-height:1.9;margin-top:6px">
+            <li>Mở Google Sheet → menu <b>Tiện ích mở rộng (Extensions)</b> → <b>Apps Script</b>.</li>
+            <li>Xoá code mẫu, <b>dán đoạn code ở khung bên dưới</b> (bấm "Copy code") → bấm 💾 lưu.</li>
+            <li><b>Triển khai (Deploy)</b> → <b>Bản triển khai mới</b> → loại <b>Ứng dụng web (Web app)</b>.</li>
+            <li>"Ai có quyền truy cập" = <b>Bất kỳ ai (Anyone)</b> → <b>Triển khai</b> → <b>Cho phép (Authorize)</b>.</li>
+            <li>Copy <b>URL …/exec</b> → dán vào ô trên → <b>Lưu link</b> → <b>Gửi thử 1 dòng</b> để kiểm tra.</li>
+          </ol>
+          <div class="row" style="align-items:center;gap:10px;margin-top:8px">
+            <b class="muted">📋 Code cổng (chỉ đọc, không sửa được):</b>
+            <button id="btnCopyAppsScript" class="ghost" style="padding:4px 12px;font-size:12px">📋 Copy code</button>
+          </div>
+          <textarea id="appsScriptCode" readonly wrap="off" onclick="this.select()" style="width:100%;min-height:240px;margin-top:6px;background:#0f141a;border:1px solid var(--line);color:#cbd5e1;border-radius:8px;padding:8px 10px;font:12px/1.5 ui-monospace,Consolas,monospace;resize:vertical;white-space:pre;overflow:auto">// CỔNG GOOGLE SHEET cho YT DNA Tool — dán vào Apps Script rồi Deploy (Web app, Anyone).
+function doPost(e){
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var rows = (JSON.parse(e.postData.contents).rows) || [];
+    var last = sheet.getLastRow(), stt = 0;
+    if(last >= 1){ var v = sheet.getRange(last, 1).getValue(); if(typeof v === 'number') stt = v; }
+    rows.forEach(function(r){
+      stt++;
+      sheet.appendRow([stt, r.title_en||'', r.title_vi||'', r.link_video||'', r.prompt_thumb||'']);
+    });
+    return ContentService.createTextOutput(JSON.stringify({ok:true, added:rows.length})).setMimeType(ContentService.MimeType.JSON);
+  }catch(err){
+    return ContentService.createTextOutput(JSON.stringify({ok:false, error:String(err)})).setMimeType(ContentService.MimeType.JSON);
+  }finally{ lock.releaseLock(); }
+}
+function doGet(){ return ContentService.createTextOutput('YT DNA Tool sheet gateway OK'); }</textarea>
+        </details>
+      </div>
+      </div>
+      </div>
+    </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+async function api(path, body){
+  const r = await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return r.json();
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function nf(n){return (n||0).toLocaleString('vi-VN');}
+// Khung "cau truc tieu de" cua 1 khuon (dung o Phan tich kenh & khi Quet co chon du an)
+function khuonStructHtml(p, name, saved){
+  if(!p) return '';
+  let pills='';(p.tu_huyet_chu_dao||[]).forEach(x=>pills+='<span class="pill">'+esc(x)+'</span>');
+  let sk='';(p.khung_xuong_tieu_de||[]).forEach(x=>sk+='<li>'+esc(x)+'</li>');
+  const head = saved ? ('✅ Đã lưu khuôn: <b>'+esc(name||'')+'</b>')
+                     : ('🧬 Cấu trúc tiêu đề của khuôn đang áp dụng: <b>'+esc(name||'')+'</b>');
+  return '<div class="card" style="background:#141a21;margin-top:12px">'+
+    '<p style="margin:0 0 6px">'+head+'</p>'+
+    '<p class="muted" style="margin:0 0 6px">Độ dài TB: <b>'+esc(String(p.do_dai_trung_binh||''))+'</b> ký tự · Vị trí từ khóa: '+esc(p.vi_tri_tu_khoa||'')+'</p>'+
+    '<p style="margin:0 0 6px">Tử huyệt chủ đạo: '+pills+'</p>'+
+    '<p class="muted" style="margin:0 0 6px">Giọng điệu: '+esc(p.giong_dieu||'')+'</p>'+
+    '<p class="muted" style="margin:0 0 2px">Khung xương tiêu đề:</p><ul style="margin:4px 0">'+sk+'</ul></div>';
+}
+
+// Thanh tien trinh % (trickle: tien nhanh dau, cham dan, khong qua 92% cho toi khi xong)
+function makeProgress(container, label){
+  container.innerHTML='<div class="prog"><div class="progbar"></div></div><div class="progtxt muted">'+esc(label)+' 0%</div>';
+  const bar=container.querySelector('.progbar'), txt=container.querySelector('.progtxt');
+  let pct=0;
+  const timer=setInterval(()=>{
+    pct=Math.min(92, pct+Math.max(0.4,(92-pct)*0.05));
+    bar.style.width=Math.round(pct)+'%'; txt.textContent=label+' '+Math.round(pct)+'%';
+  },200);
+  return { stop(){clearInterval(timer);} };
+}
+
+// dem ky tu song cho o tieu de tai tao (do neu > 65)
+function ttCount(el){
+  const box=el.closest('.verblock')||el.closest('td'); const cc=box.querySelector('.cc'); const n=el.value.length;
+  if(cc){cc.textContent=n; cc.style.color = n>65 ? '#ff8080' : (n>60 ? '#ffd24d' : '');}
+}
+function ttCopy(btn){
+  const box=btn.closest('.verblock')||btn.closest('td'); const ta=box.querySelector('textarea');
+  navigator.clipboard.writeText(ta.value);
+  btn.textContent='Đã copy ✓'; setTimeout(()=>btn.textContent='Copy',1200);
+}
+// Dung chung cho ca Quet & Viet lai: N phien ban (moi khung xuong 1 ban), moi ban co o tich + sua + copy
+// 1 tieu de tai tao (ban HAY NHAT) + nhan "Khung x/N" + nut 🔄 Tao lai (xoay vong khung khac)
+function titleCellHtml(row, opts){
+  opts=opts||{};
+  const scope=opts.scope||'#scanOut';
+  const N=(scope==='#rwOut'?(window.__rwKhungN||0):(window.__scanKhungN||0));
+  const t=row.tieu_de_tai_tao||'';
+  const ki=(row.khung_index==null?-1:row.khung_index);
+  const label=(N>0 && ki>=0)?('<span class="tag">Khung '+(ki+1)+'/'+N+'</span>'):'<span class="muted">Bản chung</span>';
+  const showD=row.dich_viet && row.dich_viet.trim()!==t.trim();
+  return '<div class="verblock" data-i="'+opts.idx+'" data-ki="'+ki+'" data-scope="'+scope+'">'+
+    '<label class="optlabel" style="gap:6px;margin-bottom:3px"><input type="checkbox" class="chk selrow"> <span class="khunglbl">'+label+'</span></label>'+
+    '<textarea class="ttedit" oninput="ttCount(this)">'+esc(t)+'</textarea>'+
+    '<div class="dichline muted" style="margin-top:3px"'+(showD?'':' hidden')+'>🌐 <b>Dịch:</b> <span class="dichval">'+esc(row.dich_viet||'')+'</span></div>'+
+    '<div class="ccbox"><span class="muted"><span class="cc">'+esc(String(row.so_ky_tu))+'</span> ký tự</span>'+
+    '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="ttCopy(this)">Copy</button>'+
+    '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="ttRegen(this)" title="Tạo lại theo khung xương khác của kênh">🔄 Tạo lại</button>'+
+    (opts.useBtn ? ('<button style="padding:3px 10px;font-size:12px" data-i="'+opts.idx+'" onclick="ttUse(this)">Sử dụng</button>') : '')+
+    '</div></div>';
+}
+// Nut 🔄 Tao lai: xoay vong sang KHUNG XUONG ke tiep cua kenh, thay tieu de tai cho.
+async function ttRegen(btn){
+  const vb=btn.closest('.verblock'); if(!vb) return;
+  const isRw=(vb.dataset.scope==='#rwOut');
+  const rows=isRw?window.__rwRows:window.__scanRows;
+  const profile=isRw?window.__rwProfile:window.__scanProfile;
+  const lang=isRw?window.__rwLang:window.__scanLang;
+  const N=(isRw?window.__rwKhungN:window.__scanKhungN)||0;
+  const i=+vb.dataset.i; const row=(rows||[])[i]; if(!row) return;
+  let ki=parseInt(vb.dataset.ki); if(isNaN(ki)) ki=-1;
+  const nextKi=(N>0)?((ki+1)%N):-1;
+  btn.disabled=true; const old=btn.textContent; btn.textContent='…';
+  try{
+    const r=await api('/api/recreate-one',{title_goc:row.title_goc, profile_name:profile||'', output_language:lang||'vi', khung_index:nextKi});
+    if(r.ok && r.tieu_de_tai_tao){
+      const ta=vb.querySelector('.ttedit'); ta.value=r.tieu_de_tai_tao; ttCount(ta);
+      vb.dataset.ki=r.khung_index;
+      const lbl=vb.querySelector('.khunglbl');
+      if(lbl) lbl.innerHTML=(N>0 && r.khung_index>=0)?('<span class="tag">Khung '+(r.khung_index+1)+'/'+N+'</span>'):'<span class="muted">Bản chung</span>';
+      const dl=vb.querySelector('.dichline'); const showD=r.dich_viet && r.dich_viet.trim()!==r.tieu_de_tai_tao.trim();
+      if(dl){ dl.hidden=!showD; const dv=dl.querySelector('.dichval'); if(dv) dv.textContent=r.dich_viet||''; }
+      row.tieu_de_tai_tao=r.tieu_de_tai_tao; row.khung_index=r.khung_index; row.so_ky_tu=r.so_ky_tu; row.dich_viet=r.dich_viet;
+    } else { alert(r.error||'Không tạo lại được, thử lại.'); }
+  }catch(e){ alert(String(e)); }
+  btn.disabled=false; btn.textContent=old;
+}
+function toggleSelAll(el, scope){document.querySelectorAll((scope||'#scanOut')+' .selrow').forEach(c=>{c.checked=el.checked;});}
+// dinh dang chuan SEO: khoang trang -> gach ngang, giu chu hoa/thuong & dau tieng Viet, bo dau cau
+function seoSlug(t){
+  return (t||'').trim()
+    .replace(/[^\p{L}\p{N}\s-]/gu,'')
+    .replace(/\s+/g,'-')
+    .replace(/-{2,}/g,'-')
+    .replace(/^-+|-+$/g,'');
+}
+function exportTitles(scope, fnamebase){
+  scope=scope||'#scanOut';
+  const sel=[];
+  document.querySelectorAll(scope+' .selrow:checked').forEach(chk=>{
+    const box=chk.closest('.verblock')||chk.closest('tr');
+    const ta=box.querySelector('.ttedit');
+    if(ta && ta.value.trim()) sel.push(seoSlug(ta.value));
+  });
+  if(!sel.length){alert('Chưa chọn tiêu đề nào (tích ô bên trái).');return;}
+  const txt=sel.join('\n');
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const base=fnamebase||('tieu-de-seo-'+((window.__scanKeyword||'export').replace(/[\\/:*?"<>|]/g,'_')));
+  a.download=base+'.txt';a.click();
+}
+// Xuat SANG Studio (Nha may Video) — dinh dang {studio:"k16", exportedAt, projects:[...]}
+// Nhap JSON ben Studio se GOP THEM (khong ghi de). Moi tieu de = 1 du an, topic = tieu de.
+function studioLang(code){ return ({vi:'Tiếng Việt', en:'English (US)', zh:'中文', ja:'日本語', ko:'한국어', es:'Español', pt:'Português (BR)', fr:'Français', de:'Deutsch', it:'Italiano'})[code] || 'English (US)'; }
+function exportToStudio(scope){
+  scope=scope||'#rwOut';
+  const lang=studioLang(window.__rwLang||'vi');
+  const now=Date.now();
+  const projects=[];
+  document.querySelectorAll(scope+' .selrow:checked').forEach((chk,n)=>{
+    const box=chk.closest('.verblock'); if(!box) return;
+    const ta=box.querySelector('.ttedit'); const topic=(ta&&ta.value.trim())||'';
+    if(!topic) return;
+    const row=(window.__rwRows||[])[+box.dataset.i]||{};
+    let ideas='';
+    if(row.dich_viet) ideas+='Nghĩa tiếng Việt: '+row.dich_viet+'\n';
+    if(row.ly_do_tai_tao) ideas+='Vì sao chọn: '+row.ly_do_tai_tao;
+    projects.push({
+      id:'pj_'+now.toString(36)+n.toString(36)+Math.random().toString(36).slice(2,6),
+      studio:'k16', name:topic.slice(0,80), channelId:'',
+      data:{ topic, minutes:25, words:3750, language:lang, framework:'', titleFormula:'',
+        contentStrategy:'', srt:'', outputSeq:0, outputDir:'', ideas:ideas.trim(),
+        outline:'', script:'', seo:'', thumbnail:'', dist:'', package:'', srtPrompts:'' },
+      createdAt:now, updatedAt:now
+    });
+  });
+  if(!projects.length){ alert('Chưa chọn tiêu đề nào. Hãy tích ô bên trái từng tiêu đề, hoặc bấm "Chọn tất cả".'); return; }
+  const payload={ studio:'k16', exportedAt:now, projects };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='studio-import-'+projects.length+'-tieu-de.json'; a.click();
+}
+// Noi thang: tich chon tieu de (bang Quet HOAC Viet lai) -> Lam prompt thumb hang loat
+// Khoi copy/nhay tab/dan lai. Dung cho ca #scanOut va #rwOut.
+async function toThumbBatch(scope){
+  scope=scope||'#rwOut';
+  const titles=[]; const meta={};
+  const srcRows=(scope==='#scanOut'?window.__scanRows:window.__rwRows)||[];
+  document.querySelectorAll(scope+' .selrow:checked').forEach(chk=>{
+    const box=chk.closest('.verblock'); if(!box) return;
+    const ta=box.querySelector('.ttedit'); const t=(ta&&ta.value.trim())||''; if(!t) return;
+    titles.push(t);
+    const row=srcRows[+box.dataset.i]||{};
+    meta[t]={title_vi:row.dich_viet||'', link_video:row.url||''};  // cho Google Sheet
+  });
+  window.__thumbSrcMeta=meta;
+  if(!titles.length){ alert('Chưa chọn tiêu đề nào. Hãy tích ô bên trái, hoặc bấm "Chọn tất cả".'); return; }
+  showTab('title');
+  const p=document.getElementById('p-title');
+  const subs=subsOf(p);
+  const idx=subs.findIndex(s=>(s.dataset.name||'').includes('Prompt Thumbnail'));
+  if(idx>=0) showSub(p, idx);
+  const seg=p.querySelector('.seg[data-toggle="aithumb"]');
+  if(seg){ const bb=seg.querySelectorAll('button')[1]; if(bb) bb.click(); }  // che do Tao hang loat
+  try{ await loadDna(); }catch(e){}
+  const ta=document.getElementById('atbInputs'); if(ta) ta.value=titles.join('\n');
+  const sel=document.getElementById('atbSel');
+  const prof=(scope==='#scanOut' ? window.__scanProfile : window.__rwProfile) || '';
+  let matched=false;
+  if(sel && prof && [...sel.options].some(o=>o.value===prof)){ sel.value=prof; matched=true; }
+  const note=document.getElementById('atbNote');
+  if(matched){ const s=document.getElementById('btnAtbStart'); if(s) s.click(); }  // du an khop -> chay luon
+  else if(note){ note.innerHTML='Đã chuyển <b>'+titles.length+'</b> tiêu đề sang đây. Hãy <b>chọn dự án</b> (DNA thumbnail) rồi bấm <b>▶ Sinh prompt hàng loạt</b>.'; }
+}
+// danh dau "Da dung": luu video + tieu de anh da sua, lan sau khong hien lai (cung tu khoa)
+async function ttUse(btn){
+  const x=(window.__scanRows||[])[+btn.dataset.i]; if(!x) return;
+  const box=btn.closest('.verblock')||btn.closest('td');
+  const finalTitle=box.querySelector('textarea').value.trim();
+  btn.disabled=true; btn.textContent='…';
+  try{
+    const r=await api('/api/use-title',{keyword:window.__scanKeyword,video_id:x.video_id,
+      title_goc:x.title_goc,tieu_de_final:finalTitle,channel:x.channel,views:x.views});
+    if(r.ok){btn.textContent='✔ Đã dùng';btn.style.background='#2f7a4d';btn.closest('tr').style.opacity=.5;}
+    else{btn.disabled=false;btn.textContent='Sử dụng';alert(r.error||'Lỗi');}
+  }catch(e){btn.disabled=false;btn.textContent='Sử dụng';alert(String(e));}
+}
+// tao prompt thumbnail: nhin thumbnail goc + tieu de (da sua) -> prompt bo tro cho tieu de
+async function ttThumb(btn){
+  const x=(window.__scanRows||[])[+btn.dataset.i]; if(!x) return;
+  if(!x.thumbnail){alert('Video này không có ảnh thumbnail để tham chiếu.');return;}
+  const title=btn.closest('td').querySelector('textarea').value.trim();
+  let box=btn.closest('td').querySelector('.thumbbox');
+  if(!box){box=document.createElement('div');box.className='thumbbox';btn.closest('td').appendChild(box);}
+  box.innerHTML='<p class="muted" style="margin-top:6px">Đang phân tích thumbnail gốc & tạo prompt…</p>';
+  btn.disabled=true; const old=btn.textContent; btn.textContent='…';
+  try{
+    const r=await api('/api/thumb-prompt',{title:title,thumbnail_url:x.thumbnail});
+    if(!r.ok){box.innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      const p=r.phan_tich_goc||{};
+      box.innerHTML='<div class="muted" style="margin-top:8px">🎨 '+esc(p.mau_sac||'')+' · 📐 '+esc(p.goc_do||'')+' · 🧩 '+esc(p.bo_cuc||'')+(p.chu_the?(' · 👤 '+esc(p.chu_the)):'')+'</div>'+
+        '<pre style="margin-top:4px">'+esc(r.thumbnail_prompt_en||'')+'</pre>'+
+        '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent);this.textContent=\'Đã copy ✓\'">Copy prompt thumbnail</button>';
+    }
+  }catch(e){box.innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  btn.disabled=false; btn.textContent=old;
+}
+
+// ---------- TABS ----------
+function showTab(id){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='p-'+id));
+  if(id==='library') loadLibrary();
+  if(id==='title') loadDna();
+  if(id==='bancontent') loadBc();
+}
+// Menu doc TRAI: moi tac vu = 1 cua so rieng (subview). Tu dung tu cac .subview trong panel.
+function subsOf(panel){
+  return [...panel.querySelectorAll(':scope > .pcontent > .subview')]
+    .filter(s=>!s.hasAttribute('data-off'))   // data-off = ẩn khỏi menu (giữ code)
+    .sort((a,b)=>((+a.dataset.order||99)-(+b.dataset.order||99)));
+}
+function showSub(panel, i){
+  const subs=subsOf(panel);
+  const btns=[...panel.querySelectorAll(':scope > .submenu > .sub-btn')];
+  subs.forEach((sv,k)=>sv.classList.toggle('active',k===i));
+  btns.forEach((b,k)=>b.classList.toggle('active',k===i));
+  const sv=subs[i];
+  if(sv && sv.dataset.onshow && typeof window[sv.dataset.onshow]==='function'){ try{ window[sv.dataset.onshow](); }catch(e){} }
+}
+function buildSubmenus(){
+  document.querySelectorAll('.panel').forEach(panel=>{
+    const menu=panel.querySelector(':scope > .submenu'); if(!menu) return;
+    const subs=subsOf(panel);
+    let act=subs.findIndex(s=>s.classList.contains('active')); if(act<0) act=0;
+    menu.innerHTML='<div class="smlbl">Tác vụ</div>';
+    subs.forEach((sv,i)=>{
+      const b=document.createElement('button'); b.className='sub-btn'+(i===act?' active':'');
+      b.innerHTML='<span class="ic">'+(sv.dataset.ic||'•')+'</span> '+(sv.dataset.name||('Mục '+(i+1)));
+      b.onclick=()=>showSub(panel,i);
+      menu.appendChild(b);
+    });
+    subs.forEach((sv,i)=>sv.classList.toggle('active',i===act));
+  });
+}
+buildSubmenus();
+try{ loadDna(); }catch(e){}  // do san dropdown DNA (thumbnail/SRT) vi khong con tab AI de kich hoat
+// Toggle ngang [Tạo đơn / Tạo hàng loạt] trong 1 subview (data-toggle="<key>" -> #<key>-single / #<key>-batch)
+document.querySelectorAll('.seg[data-toggle]').forEach(seg=>{
+  const key=seg.dataset.toggle;
+  seg.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{
+      seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===btn));
+      const m=btn.dataset.m;
+      ['single','batch'].forEach(x=>{const el=document.getElementById(key+'-'+x); if(el) el.hidden=(x!==m);});
+      const fn=btn.dataset.onshow;
+      if(fn && typeof window[fn]==='function'){ try{ window[fn](); }catch(e){} }
+    };
+  });
+});
+document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+// ---------- STATUS PILLS ----------
+function setPill(which, state, label){
+  // state: 'on' | 'off' | 'idle'
+  const dot=$('#dot'+which), txt=$('#pill'+which);
+  dot.className='dot'+(state==='on'?' on':state==='off'?' off':'');
+  txt.textContent=label;
+}
+
+// ---------- CAI DAT ----------
+let cfgHasLlm=false, cfgHasYt=false;  // co key hay chua (de biet dat den xam/xanh/do)
+const LLM_MODELS=[
+  ['Gemini 3.8 Flash (mới nhất)',[['ag/gemini-3.8-flash-high','3.8 Flash · High'],['ag/gemini-3.8-flash-medium','3.8 Flash · Medium'],['ag/gemini-3.8-flash-low','3.8 Flash · Low'],['ag/gemini-3.8-flash','3.8 Flash']]],
+  ['Gemini 3.7 Flash',[['ag/gemini-3.7-flash-high','3.7 Flash · High'],['ag/gemini-3.7-flash-medium','3.7 Flash · Medium'],['ag/gemini-3.7-flash-low','3.7 Flash · Low']]],
+  ['Gemini 3.6 Flash',[['ag/gemini-3.6-flash-high','3.6 Flash · High'],['ag/gemini-3.6-flash-medium','3.6 Flash · Medium'],['ag/gemini-3.6-flash-low','3.6 Flash · Low']]],
+  ['Gemini 3.5 Flash (nhanh, tiết kiệm)',[['ag/gemini-3.5-flash-high','3.5 Flash · High'],['ag/gemini-3.5-flash-low','3.5 Flash · Low'],['ag/gemini-3.5-flash-extra-low','3.5 Flash · Extra-low']]],
+  ['Cao cấp (chậm hơn · chất lượng cao)',[['ag/gemini-3.1-pro-low','Gemini 3.1 Pro · Low'],['ag/claude-sonnet-4-6','Claude Sonnet 4.6'],['ag/claude-opus-4-6-thinking','Claude Opus 4.6 · Thinking'],['ag/gpt-oss-120b-medium','GPT-OSS 120B · Medium']]],
+  ['Agent (tra web — nếu 9router hỗ trợ)',[['ag/gemini-3-flash-agent','Gemini 3 Flash · Agent'],['ag/gemini-pro-agent','Gemini Pro · Agent']]],
+  ['Khác',[['ag/gemini-3-flash','Gemini 3 Flash']]],
+];
+function fillModelSelect(id, def){
+  const s=document.getElementById(id); if(!s) return; s.innerHTML='';
+  LLM_MODELS.forEach(([g,items])=>{ const og=document.createElement('optgroup'); og.label=g;
+    items.forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; if(v===def)o.selected=true; og.appendChild(o); }); s.appendChild(og); });
+}
+fillModelSelect('cfgModelAnalyze','ag/gemini-3.8-flash-high');
+fillModelSelect('cfgModelCreate','ag/gemini-3.8-flash-medium');
+function setSelVal(id, v){ const s=document.getElementById(id); if(s && v && [...s.options].some(o=>o.value===v)) s.value=v; }
+async function loadConfig(){
+  try{
+    const r=await (await fetch('/api/config')).json();
+    setSelVal('cfgModelAnalyze', r.model_analyze||r.llm_model);
+    setSelVal('cfgModelCreate', r.model_create||r.llm_model);
+    if($('#cfgReasoning')){const rs=$('#cfgReasoning'); const v=(r.llm_reasoning||'auto'); if([...rs.options].some(o=>o.value===v)) rs.value=v;}
+    cfgHasLlm=!!r.has_llm_key; cfgHasYt=!!r.has_youtube_key;
+    // Luc dau chi biet DA LUU hay CHUA -> de XAM; checkApi() se to XANH (tot) / DO (loi).
+    setPill('Llm', 'idle', cfgHasLlm?'đã lưu':'chưa có');
+    setPill('Yt',  'idle', cfgHasYt?'đã lưu':'chưa có');
+    $('#cfgLlmKey').placeholder = r.has_llm_key ? ('đã lưu '+(r.llm_key_hint||'')+' — để trống nếu giữ nguyên') : 'dán key 9router…';
+    $('#cfgYtKey').placeholder  = r.has_youtube_key ? ('đã lưu '+(r.youtube_key_hint||'')+' — để trống nếu giữ nguyên') : 'dán YouTube API key…';
+    $('#cfgBanner').innerHTML = r.ready ? '' :
+      '<p class="banner-warn" style="margin-top:0">⚠️ Chưa đủ key — dán 2 key rồi bấm <b>Lưu cài đặt</b> thì các chức năng mới chạy.</p>';
+    if($('#cfgSheetUrl')) $('#cfgSheetUrl').value = r.sheet_url||'';
+    if($('#cfgSheetAuto')) $('#cfgSheetAuto').checked = !!r.sheet_auto;
+    window.__sheetOn = !!(r.sheet_url && r.sheet_auto);  // co URL + bat tu dong
+    window.__sheetUrlSet = !!r.sheet_url;
+    return r;
+  }catch(e){return null;}
+}
+
+$('#btnCfg').onclick=async()=>{
+  const body={model_analyze:$('#cfgModelAnalyze').value, model_create:$('#cfgModelCreate').value, llm_reasoning:$('#cfgReasoning').value};
+  if($('#cfgLlmKey').value.trim()) body.llm_api_key=$('#cfgLlmKey').value.trim();
+  if($('#cfgYtKey').value.trim()) body.youtube_api_key=$('#cfgYtKey').value.trim();
+  const b=$('#btnCfg'); b.disabled=true; b.textContent='Đang lưu...'; $('#checkOut').innerHTML='';
+  try{
+    const r=await api('/api/config',body);
+    if(r.ok){
+      $('#cfgLlmKey').value='';$('#cfgYtKey').value=''; await loadConfig();
+      $('#cfgSaved').innerHTML='<p class="banner-ok">✅ Đã lưu cài đặt. Đang kiểm tra kết nối…</p>';
+      await checkApi(); setTimeout(()=>{$('#cfgSaved').innerHTML='';},4000);
+    } else alert(r.error||'Lỗi lưu');
+  }catch(e){alert(String(e));}
+  b.disabled=false; b.textContent='Lưu cài đặt';
+};
+$('#btnSaveSheet').onclick=async()=>{
+  const url=$('#cfgSheetUrl').value.trim(); const auto=$('#cfgSheetAuto').checked;
+  const b=$('#btnSaveSheet'); b.disabled=true; b.textContent='Đang lưu...';
+  try{ const r=await api('/api/config',{sheet_url:url, sheet_auto:auto}); await loadConfig();
+    $('#sheetSaved').innerHTML = r.ok ? '<span style="color:#8fd6a0">✅ Đã lưu. '+(auto?'Sẽ tự động gửi sau khi làm thumb.':'Chưa bật tự động — dùng nút "Gửi lên Sheet" khi cần.')+'</span>' : '<span class="err">'+esc(r.error||'Lỗi')+'</span>';
+  }catch(e){ $('#sheetSaved').innerHTML='<span class="err">'+esc(String(e))+'</span>'; }
+  b.disabled=false; b.textContent='Lưu link';
+};
+$('#btnTestSheet').onclick=async()=>{
+  const b=$('#btnTestSheet'); b.disabled=true; b.textContent='Đang gửi...';
+  const row={title_en:'TEST from YT DNA Tool', title_vi:'Dòng thử nghiệm', link_video:'', prompt_thumb:'(prompt thử)'};
+  try{ const r=await api('/api/sheet/append',{rows:[row]});
+    $('#sheetSaved').innerHTML = r.ok ? '<span style="color:#8fd6a0">✅ Gửi thử OK — kiểm tra dòng mới trong Google Sheet.</span>' : '<span class="err">'+esc(r.error||'Lỗi')+'</span>';
+  }catch(e){ $('#sheetSaved').innerHTML='<span class="err">'+esc(String(e))+'</span>'; }
+  b.disabled=false; b.textContent='Gửi thử 1 dòng';
+};
+$('#btnCopyAppsScript').onclick=()=>{ const el=$('#appsScriptCode'); if(!el)return;
+  navigator.clipboard.writeText(el.value); const b=$('#btnCopyAppsScript'); b.textContent='Đã copy ✓'; setTimeout(()=>b.textContent='📋 Copy code',1500); };
+
+async function checkApi(){
+  $('#checkOut').innerHTML='<p class="muted">Đang kiểm tra kết nối 9router và YouTube…</p>';
+  setPill('Llm', 'idle', cfgHasLlm?'đang kiểm…':'chưa có');
+  setPill('Yt',  'idle', cfgHasYt?'đang kiểm…':'chưa có');
+  try{
+    const r=await api('/api/check-api',{});
+    const line=(name,o)=>'<div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px">'+
+      (o.ok?'🟢':'🔴')+' <b>'+name+'</b>: <span style="color:'+(o.ok?'var(--acc2)':'#ff8080')+'">'+(o.ok?'Kết nối được':'Lỗi')+'</span>'+
+      '<div class="muted" style="margin-top:2px">'+esc(o.message||'')+'</div></div>';
+    $('#checkOut').innerHTML=line('9router (Gemini)',r.llm)+line('YouTube API',r.youtube);
+    // Chua co key -> XAM "chưa có"; co key -> XANH "tốt" neu OK, DO "lỗi" neu hong.
+    setPill('Llm', cfgHasLlm?(r.llm.ok?'on':'off'):'idle', cfgHasLlm?(r.llm.ok?'tốt':'lỗi'):'chưa có');
+    setPill('Yt',  cfgHasYt ?(r.youtube.ok?'on':'off'):'idle', cfgHasYt ?(r.youtube.ok?'tốt':'lỗi'):'chưa có');
+  }catch(e){
+    $('#checkOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';
+    setPill('Llm', cfgHasLlm?'off':'idle', cfgHasLlm?'lỗi':'chưa có');
+    setPill('Yt',  cfgHasYt ?'off':'idle', cfgHasYt ?'lỗi':'chưa có');
+  }
+}
+$('#btnCheck').onclick=checkApi;
+
+// ---------- PROFILES (khuon tieu de) ----------
+async function loadProfiles(selected){
+  const r=await (await fetch('/api/profiles')).json();
+  const list=r.profiles||[];
+  ['#profileSel','#rwProfile'].forEach(id=>{
+    const sel=$(id); if(!sel) return;
+    sel.innerHTML='<option value="">(công thức chung)</option>';
+    list.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+  });
+  const def=selected||localStorage.getItem('defProfile');
+  if(def) ['#profileSel','#rwProfile'].forEach(id=>{const s=$(id); if(s && [...s.options].some(o=>o.value===def)) s.value=def;});
+}
+
+// ---------- VIET LAI TIEU DE BAT KY theo DNA ----------
+function renderRewriteRows(rows, khuon, khuonName){
+  const box=khuonStructHtml(khuon, khuonName, false);
+  if(!rows.length){$('#rwOut').innerHTML=box+'<p class="muted">Không có kết quả.</p>';return;}
+  let trs='';
+  rows.forEach((x,i)=>{
+    const goc = x.url ? ('<a href="'+esc(x.url)+'" target="_blank">'+esc(x.title_goc)+'</a>') : esc(x.title_goc);
+    const meta = x.channel ? ('<div class="muted">'+esc(x.channel)+(x.views?(' · '+nf(x.views)+' view'):'')+'</div>') : '<div class="muted">nhập tay</div>';
+    const dichGoc = x.dich_goc ? ('<div class="muted" style="margin-top:4px">🌐 <b>Dịch:</b> '+esc(x.dich_goc)+'</div>') : '';
+    trs+='<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td style="min-width:150px">'+goc+meta+dichGoc+'</td>'+
+      '<td style="min-width:150px"><span class="tag">vấn đề</span> '+esc(x.tu_khoa_van_de)+'<br><span class="tag">tò mò</span> '+esc(x.khoang_trong_to_mo)+'</td>'+
+      '<td style="min-width:260px">'+titleCellHtml(x,{useBtn:false,idx:i,scope:'#rwOut'})+'</td>'+
+      '<td class="muted" style="min-width:200px;white-space:normal;word-break:break-word">'+esc(x.ly_do_tai_tao)+'</td></tr>';
+  });
+  $('#rwOut').innerHTML=box+
+    '<div class="row" style="margin-top:10px;align-items:center;gap:14px">'+
+    '<label class="optlabel"><input type="checkbox" class="chk" onclick="toggleSelAll(this,\'#rwOut\')"> Chọn tất cả</label>'+
+    '<button class="ghost" onclick="exportTitles(\'#rwOut\',\'tieu-de-viet-lai\')">⬇ Xuất tiêu đề đã chọn (.txt)</button>'+
+    '<button class="ghost" onclick="toThumbBatch(\'#rwOut\')" style="background:#3a1f4d;border-color:#562c70">🖼️ Làm thumb cả loạt</button>'+
+    '<button class="ghost" onclick="exportToStudio(\'#rwOut\')" style="background:#1f3a4d;border-color:#2c5670">🏭 Xuất sang Studio (JSON)</button></div>'+
+    '<div class="tblscroll"><table><thead><tr><th>#</th><th>Tiêu đề gốc</th><th>Bóc tách</th>'+
+    '<th>Tiêu đề viết lại</th><th>Vì sao chọn (phân tích)</th></tr></thead><tbody>'+trs+'</tbody></table></div>';
+}
+$('#btnRewrite').onclick=async()=>{
+  const inputs=$('#rwInputs').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!inputs.length){alert('Dán ít nhất 1 tiêu đề hoặc link.');return;}
+  const b=$('#btnRewrite'); b.disabled=true; b.textContent='Đang viết lại...';
+  $('#rwNote').textContent='';
+  const pg=makeProgress($('#rwOut'),'Đang bóc tách & viết lại theo DNA');
+  try{
+    const r=await api('/api/rewrite-titles',{inputs,profile_name:$('#rwProfile').value,output_language:$('#rwLang').value});
+    pg.stop();
+    if(!r.ok){$('#rwOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      if(r.note) $('#rwNote').innerHTML='<span class="err">'+esc(r.note)+'</span>';
+      window.__rwRows=r.rows||[]; window.__rwProfile=$('#rwProfile').value; window.__rwLang=$('#rwLang').value;
+      window.__rwKhungN=(r.khuon && r.khuon.khung_xuong_tieu_de)?r.khuon.khung_xuong_tieu_de.length:0;
+      renderRewriteRows(r.rows||[], r.khuon, r.khuon_name);
+    }
+  }catch(e){pg.stop();$('#rwOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='✍️ Viết lại theo DNA';
+};
+
+// ===== LICH SU viet lai tieu de (tim/lay lai sau) =====
+window.__histAll=[];
+async function loadTitleHist(){
+  try{ const r=await (await fetch('/api/title-history')).json(); window.__histAll=r.history||[]; }
+  catch(e){ window.__histAll=[]; }
+  renderTitleHist();
+}
+function histCard(e){
+  const dich=e.dich_viet?('<div class="muted">🌐 '+esc(e.dich_viet)+'</div>'):'';
+  const goc=e.title_goc?('<div class="muted">📌 Gốc: '+esc(e.title_goc)+'</div>'):'';
+  const lydo=e.ly_do?('<div class="muted">💡 Vì sao chọn: '+esc(e.ly_do)+'</div>'):'';
+  const meta='<div class="muted" style="font-size:11px;margin-top:4px">khuôn: <b>'+esc(e.khuon_name||'chung')+'</b> · '+esc(String(e.lang||'').toUpperCase())+' · '+esc(e.created_at||'')+'</div>';
+  const id=esc(e.id||'');
+  return '<div class="libitem" style="align-items:flex-start">'+
+    '<div class="meta" style="flex:1">'+
+      '<div class="nm">✍️ '+esc(e.tieu_de_tai_tao||'')+' <span class="muted" style="font-weight:400">('+(e.so_ky_tu||0)+' ký tự)</span></div>'+
+      dich+goc+lydo+meta+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:6px">'+
+      '<button class="ghost" onclick="histCopy(this,\''+id+'\')">Copy</button>'+
+      '<button style="background:#5a2a2a" onclick="delHist(\''+id+'\')">Xoá</button>'+
+    '</div></div>';
+}
+function renderTitleHist(){
+  const q=($('#histSearch').value||'').trim().toLowerCase();
+  let list=window.__histAll.slice().reverse(); // moi nhat len dau
+  if(q) list=list.filter(e=>((e.tieu_de_tai_tao||'')+' '+(e.title_goc||'')+' '+(e.dich_viet||'')+' '+(e.ly_do||'')+' '+(e.khuon_name||'')).toLowerCase().includes(q));
+  $('#histCount').textContent=window.__histAll.length?('Có '+window.__histAll.length+' tiêu đề đã lưu'+(q?(' · '+list.length+' khớp'):'')):'';
+  $('#histOut').innerHTML=list.length? list.map(histCard).join('')
+    : '<p class="muted">'+(window.__histAll.length?'Không có kết quả khớp.':'Chưa có lịch sử. Hãy dùng "Viết lại tiêu đề" ở trên — kết quả sẽ tự lưu vào đây.')+'</p>';
+}
+function histCopy(btn,id){ const e=window.__histAll.find(x=>x.id===id); if(!e)return; navigator.clipboard.writeText(e.tieu_de_tai_tao||''); btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1200); }
+async function delHist(id){ if(!confirm('Xoá tiêu đề này khỏi lịch sử?'))return; await api('/api/title-history/delete',{id}); await loadTitleHist(); }
+$('#histSearch').addEventListener('input',renderTitleHist);
+$('#btnHistClear').onclick=async()=>{ if(!window.__histAll.length)return; if(!confirm('Xoá TẤT CẢ lịch sử viết lại? Không khôi phục được.'))return; await api('/api/title-history/clear',{}); await loadTitleHist(); };
+
+$('#btnAnalyze').onclick=async()=>{
+  const url=$('#chUrl').value.trim(); if(!url){alert('Nhập link kênh');return;}
+  const b=$('#btnAnalyze'); b.disabled=true; b.textContent='Đang phân tích...';
+  const pg=makeProgress($('#analyzeOut'),'Đang lấy 20 video & rút khuôn');
+  try{
+    const r=await api('/api/analyze-channel',{channel_url:url,name:$('#chName').value.trim()});
+    pg.stop();
+    if(!r.ok){$('#analyzeOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      $('#analyzeOut').innerHTML=khuonStructHtml(r.profile, r.name, true);
+      loadProfiles(r.name); loadProjects();
+    }
+  }catch(e){pg.stop();$('#analyzeOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Phân tích 20 video top view';
+};
+
+$('#mode').onchange=e=>{$('#wWrap').style.display=e.target.value==='trend48h'?'none':'block';};
+
+// ---------- goi y tu khoa (nhu thanh tim kiem YouTube) ----------
+let sugTimer=null;
+$('#kw').addEventListener('input',()=>{
+  clearTimeout(sugTimer);
+  const q=$('#kw').value.trim();
+  if(q.length<2){$('#kwSug').hidden=true;return;}
+  sugTimer=setTimeout(async()=>{
+    try{
+      const r=await (await fetch('/api/suggest?q='+encodeURIComponent(q))).json();
+      const list=r.suggestions||[];
+      if(!list.length){$('#kwSug').hidden=true;return;}
+      $('#kwSug').innerHTML=list.map(s=>'<div class="sugitem" data-q="'+encodeURIComponent(s)+'" onmousedown="pickSug(event,this)"><b>🔎</b> '+esc(s)+'</div>').join('');
+      $('#kwSug').hidden=false;
+    }catch(e){$('#kwSug').hidden=true;}
+  },220);
+});
+$('#kw').addEventListener('blur',()=>{setTimeout(()=>{$('#kwSug').hidden=true;},150);});
+$('#kw').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')$('#kwSug').hidden=true;});
+function pickSug(ev,el){ev.preventDefault();$('#kw').value=decodeURIComponent(el.dataset.q);$('#kwSug').hidden=true;$('#kw').focus();}
+
+// ---------- goi y THEM tu khoa (nghien cuu tu khoa kieu YouTube) ----------
+$('#btnIdeas').onclick=async()=>{
+  const q=$('#kw').value.trim(); if(!q){alert('Nhập từ khóa gốc để lấy ý tưởng');return;}
+  const b=$('#btnIdeas'); b.disabled=true; b.textContent='Đang khai thác ý tưởng…';
+  $('#kwIdeas').innerHTML='<p class="muted">Đang moi gợi ý từ YouTube (a–z + từ hỏi), vài giây…</p>';
+  try{
+    const r=await (await fetch('/api/keyword-ideas?q='+encodeURIComponent(q))).json();
+    const list=r.ideas||[];
+    if(!list.length){$('#kwIdeas').innerHTML='<p class="muted">Không lấy được gợi ý (thử từ khóa khác).</p>';}
+    else{
+      $('#kwIdeas').innerHTML='<p class="muted" style="margin:10px 0 4px">💡 <b>'+list.length+'</b> ý tưởng từ khóa có thật trên YouTube — bấm để chọn rồi Quét:</p>'+
+        list.map(s=>'<span class="kwchip" data-q="'+encodeURIComponent(s)+'" onclick="useIdea(this)">'+esc(s)+'</span>').join('');
+    }
+  }catch(e){$('#kwIdeas').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='💡 Gợi ý thêm từ khóa (nghiên cứu như YouTube)';
+};
+function useIdea(el){$('#kw').value=decodeURIComponent(el.dataset.q);$('#kw').scrollIntoView({behavior:'smooth',block:'center'});$('#kw').focus();}
+
+function fmtDur(s){s=Math.round(s||0);const m=Math.floor(s/60),ss=s%60;return m+':'+String(ss).padStart(2,'0');}
+function vtypeBadge(x){
+  if(x.is_short===true) return '<span style="font-size:11px;font-weight:600;background:#5b2a86;color:#fff;padding:1px 7px;border-radius:6px">Short</span>';
+  if(x.is_short===false) return '<span style="font-size:11px;font-weight:600;background:#1f4d7a;color:#fff;padding:1px 7px;border-radius:6px">Dài</span>';
+  return '';
+}
+$('#btnScan').onclick=async()=>{
+  const kw=$('#kw').value.trim(); if(!kw){alert('Nhập từ khóa');return;}
+  const b=$('#btnScan'); b.disabled=true; b.textContent='Đang quét...';
+  const pg=makeProgress($('#scanOut'),'Đang quét & tái tạo'); $('#scanNote').textContent='';
+  try{
+    const r=await api('/api/scan',{keyword:kw,mode:$('#mode').value,window:$('#window').value,
+      count:$('#count').value,output_language:$('#outLang').value,profile_name:$('#profileSel').value,
+      video_type:$('#videoType').value,
+      hide_used:$('#hideUsed').checked,hide_seen:$('#hideSeen').checked});
+    pg.stop();
+    if(!r.ok){$('#scanOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      window.__scanRows=r.rows||[]; window.__scanKeyword=r.keyword||kw;
+      window.__scanProfile=$('#profileSel').value; window.__scanLang=$('#outLang').value;
+      window.__scanKhungN=(r.khuon && r.khuon.khung_xuong_tieu_de)?r.khuon.khung_xuong_tieu_de.length:0;
+      const mk=r.market||{};
+      let kwinfo='Từ khóa: '+(r.keyword||kw)+(r.corrected?(' (đã tự sửa từ "'+(r.original_keyword||'')+'")'):'');
+      $('#scanNote').textContent=kwinfo+' · Thị trường: '+(mk.relevance_language||'?')+'/'+(mk.region_code||'?')+' · Chế độ: '+(r.mode||'')+' · Mốc: '+(r.window||'')+(r.note?(' · '+r.note):'');
+      if(!r.rows||!r.rows.length){$('#scanOut').innerHTML=khuonStructHtml(r.khuon, r.khuon_name, false)+'<p class="muted">'+(r.note?esc(r.note):'Không có kết quả.')+'</p>';}
+      else{
+        let rows='';
+        r.rows.forEach((x,i)=>{rows+='<tr>'+
+          '<td>'+x.rank+'</td><td class="views">'+nf(x.views)+'</td>'+
+          '<td style="min-width:140px"><a href="'+esc(x.url)+'" target="_blank">'+esc(x.title_goc)+'</a> '+vtypeBadge(x)+'<div class="muted">'+esc(x.channel)+(x.duration_sec?(' · '+fmtDur(x.duration_sec)):'')+'</div>'+(x.dich_goc?('<div class="muted" style="margin-top:4px">🌐 <b>Dịch:</b> '+esc(x.dich_goc)+'</div>'):'')+'</td>'+
+          '<td style="min-width:150px"><span class="tag">vấn đề</span> '+esc(x.tu_khoa_van_de)+'<br><span class="tag">tò mò</span> '+esc(x.khoang_trong_to_mo)+
+          '<br><span class="muted">chủ đề: '+esc(x.chu_de)+' · tử huyệt: '+esc(x.tu_huyet)+'</span></td>'+
+          '<td style="min-width:260px">'+titleCellHtml(x,{useBtn:true,idx:i,scope:'#scanOut'})+'</td>'+
+          '<td class="muted" style="min-width:200px;white-space:normal;word-break:break-word">'+esc(x.ly_do_tai_tao)+'</td></tr>';});
+        $('#scanOut').innerHTML=
+          khuonStructHtml(r.khuon, r.khuon_name, false)+
+          '<div class="row" style="margin-top:10px;align-items:center;gap:14px">'+
+          '<label class="optlabel"><input type="checkbox" id="selAll" class="chk" onclick="toggleSelAll(this)"> Chọn tất cả</label>'+
+          '<button class="ghost" onclick="exportTitles()">⬇ Xuất tiêu đề đã chọn (.txt)</button>'+
+          '<button class="ghost" onclick="toThumbBatch(\'#scanOut\')" style="background:#3a1f4d;border-color:#562c70">🖼️ Làm thumb cả loạt</button></div>'+
+          '<div class="tblscroll"><table><thead><tr><th>#</th><th>View</th><th>Tiêu đề gốc</th><th>Bóc tách</th>'+
+          '<th>Tiêu đề tái tạo</th><th>Vì sao chọn (phân tích)</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+      }
+    }
+  }catch(e){pg.stop();$('#scanOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Quét & tái tạo';
+};
+
+$('#btnResetSeen').onclick=async()=>{
+  const kw=$('#kw').value.trim(); if(!kw){alert('Nhập từ khóa cần đặt lại');return;}
+  if(!confirm('Đặt lại lịch sử QUÉT cho từ khóa "'+kw+'"?\n(Các video từng quét có thể xuất hiện lại. Danh sách "Đã dùng" KHÔNG bị ảnh hưởng.)'))return;
+  try{await api('/api/seen/clear',{keyword:kw});alert('Đã đặt lại lịch sử quét cho từ khóa "'+kw+'".');}
+  catch(e){alert(String(e));}
+};
+
+// ---------- DNA anh ----------
+async function loadDna(selected){
+  const r=await (await fetch('/api/dna?type=ai')).json();
+  const list=r.dna||[];
+  ['#aiThumbSel','#atbSel'].forEach(id=>{
+    const sel=$(id); if(!sel) return;
+    sel.innerHTML='<option value="">(chưa có — dùng phong cách chung)</option>';
+    list.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);});
+  });
+  const def=selected||localStorage.getItem('defDna');
+  if(def) ['#aiThumbSel','#atbSel'].forEach(id=>{const s=$(id); if(s && [...s.options].some(o=>o.value===def)) s.value=def;});
+  const hint=document.getElementById('dnaHint');
+  if(hint) hint.textContent = list.length ? '' : '↑ Chưa có DNA nào — hãy làm "Tạo DNA phong cách" trước (hoặc cứ để "phong cách chung").';
+}
+// Tab AI: nhap tieu de -> 1 prompt thumbnail (AI style, co chu) theo DNA du an
+$('#btnAiThumb').onclick=async()=>{
+  const title=$('#aiThumbTitle').value.trim(); if(!title){alert('Nhập tiêu đề');return;}
+  const b=$('#btnAiThumb'); b.disabled=true; b.textContent='Đang sinh...';
+  const pg=makeProgress($('#aiThumbOut'),'Đang bóc tách & sinh prompt thumbnail');
+  try{
+    const r=await api('/api/ai-thumb-from-title',{name:$('#aiThumbSel').value,title});
+    pg.stop();
+    if(!r.ok){$('#aiThumbOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      $('#aiThumbOut').innerHTML=
+        (r.phan_tich_tieu_de?('<p class="muted" style="margin-top:10px">📌 <b>Tiêu đề nói về:</b> '+esc(r.phan_tich_tieu_de)+'</p>'):'')+
+        (r.chu_the_chinh?('<p class="muted">🎯 <b>Chủ thể:</b> '+esc(r.chu_the_chinh)+'</p>'):'')+
+        (r.boi_canh_de_xuat?('<p class="muted">🏞️ <b>Bối cảnh:</b> '+esc(r.boi_canh_de_xuat)+'</p>'):'')+
+        (r.text_tren_thumb?('<p class="muted">🔤 <b>Chữ trên thumb:</b> '+esc(r.text_tren_thumb)+'</p>'):'')+
+        (r.khoa_bo_cuc?('<p class="muted">🔒 <b>Bố cục đã khóa</b> (cố định mọi thumb) · biểu tượng + chủ thể + hook bám tiêu đề</p>'):'')+
+        (r.khoa_chu_en?('<p class="muted">🔒 <b>Kiểu chữ (khóa, giống mọi thumb):</b> <span style="color:#8fd6a0">'+esc(r.khoa_chu_en)+'</span></p>'):'')+
+        (r.khoa_nhan_vat_en?('<p class="muted">🔒 <b>Nhân vật (khóa, giống mọi thumb):</b> <span style="color:#8fd6a0">'+esc(r.khoa_nhan_vat_en)+'</span></p>'):'')+
+        '<h4 style="margin:12px 0 4px;font-size:13px">🖼️ Prompt Thumbnail (EN)</h4><pre>'+esc(r.thumbnail_prompt_en||'')+'</pre>'+
+        '<button class="ghost" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent);this.textContent=\'Đã copy ✓\'">Copy prompt</button>';
+    }
+  }catch(e){pg.stop();$('#aiThumbOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Sinh prompt thumbnail';
+};
+// ===== Tab AI: Tiêu đề -> prompt thumbnail HÀNG LOẠT (dùng chung batch worker, kind=aititles) =====
+let atbTimer=null;
+$('#atbFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ const txt=await f.text();
+    const cur=$('#atbInputs').value.trim();
+    $('#atbInputs').value = cur ? (cur+'\n'+txt) : txt;
+    $('#atbNote').innerHTML='Đã nạp <b>'+esc(f.name)+'</b> — kiểm tra lại danh sách bên dưới rồi bấm Sinh.';
+  }catch(err){ $('#atbNote').innerHTML='<span class="err">Không đọc được file .txt.</span>'; }
+  e.target.value='';
+});
+function atbTitles(){ return $('#atbInputs').value.split('\n').map(s=>s.trim()).filter(Boolean); }
+function atbButtons(status){
+  const run=(status==='running'), pause=(status==='paused'), active=(run||pause||status==='stopping');
+  $('#btnAtbStart').style.display=active?'none':'';
+  $('#btnAtbStart').textContent=(status==='done'||status==='stopped')?'▶ Chạy lại':'▶ Sinh prompt hàng loạt';
+  $('#btnAtbPause').style.display=run?'':'none';
+  $('#btnAtbResume').style.display=pause?'':'none';
+  $('#btnAtbStop').style.display=active?'':'none';
+  const hasDone=(status==='done'||status==='stopped');
+  $('#btnAtbCopy').style.display=hasDone?'':'none';
+  $('#btnAtbExport').style.display=hasDone?'':'none';
+  $('#btnAtbSheet').style.display=(hasDone && window.__sheetUrlSet)?'':'none';
+  $('#atbInputs').disabled=active; $('#atbFile').disabled=active; $('#atbSel').disabled=active;
+}
+async function sheetSendFromBatch(silent){
+  let r; try{ r=await (await fetch('/api/batch/status')).json(); }catch(e){ return; }
+  const items=(r.items||[]).filter(it=>it.prompt);
+  if(!items.length){ if(!silent) $('#atbNote').innerHTML='<span class="err">Chưa có prompt nào để gửi.</span>'; return; }
+  const meta=window.__thumbSrcMeta||{};
+  const rows=items.map(it=>{ const m=meta[it.title]||{}; return {title_en:it.title, title_vi:m.title_vi||'', link_video:m.link_video||'', prompt_thumb:it.prompt||''}; });
+  const b=$('#btnAtbSheet'); if(b){ b.disabled=true; b.textContent='Đang gửi…'; }
+  const res=await api('/api/sheet/append',{rows});
+  if(b){ b.disabled=false; b.textContent='📊 Gửi lên Google Sheet'; }
+  $('#atbNote').innerHTML = res.ok ? ('<span style="color:#8fd6a0">📊 Đã gửi '+rows.length+' dòng lên Google Sheet.</span>')
+    : ('<span class="err">Gửi Sheet lỗi: '+esc(res.error||'')+'</span>');
+}
+$('#btnAtbSheet').onclick=()=>sheetSendFromBatch(false);
+function atbRender(r){
+  const tb=$('#atbTable').querySelector('tbody'); let h='';
+  (r.items||[]).forEach((it,i)=>{
+    let cell;
+    if(it.state==='done') cell='<pre style="margin:0;white-space:pre-wrap">'+esc(it.prompt||'')+'</pre>'+
+        (it.text_tren_thumb?('<div class="muted">🔤 '+esc(it.text_tren_thumb)+'</div>'):'');
+    else if(it.state==='running') cell='<span style="color:#0969da">🔄 Đang làm…</span>';
+    else if(it.state==='error') cell='<span class="err" title="'+esc(it.error||'')+'">❌ Lỗi</span>';
+    else cell='<span class="muted">⏳ Chờ</span>';
+    const copy = it.state==='done'
+      ? '<button class="ghost" onclick="navigator.clipboard.writeText(this.closest(\'tr\').querySelector(\'pre\').textContent);this.textContent=\'✓\'">Copy</button>' : '';
+    h+='<tr><td>'+(i+1)+'</td><td>'+esc(it.title)+'</td><td>'+cell+'</td><td>'+copy+'</td></tr>';
+  });
+  tb.innerHTML=h;
+  $('#atbTable').style.display=(r.items&&r.items.length)?'':'none';
+  $('#atbProg').innerHTML='<div class="prog"><div class="progbar" style="width:'+(r.pct||0)+'%"></div></div>'+
+    '<div class="progtxt muted">'+(r.pct||0)+'% · '+(r.finished||0)+'/'+(r.total||0)+' tiêu đề'+
+    (r.status==='running'?(' · đang làm #'+((r.cur||0)+1)):'')+
+    (r.status==='paused'?' · ⏸ tạm dừng':'')+(r.status==='done'?' · ✅ hoàn tất':'')+
+    (r.status==='stopped'?' · ⏹ đã dừng':'')+'</div>';
+  atbButtons(r.status);
+}
+function atbStopPoll(){ if(atbTimer){clearInterval(atbTimer);atbTimer=null;} }
+function atbStartPoll(){ atbStopPoll(); atbTimer=setInterval(atbRefresh,1500); }
+async function atbRefresh(){
+  let r; try{ r=await (await fetch('/api/batch/status')).json(); }catch(e){return;}
+  if(!r.ok) return;
+  if(r.kind && r.kind!=='aititles'){ atbStopPoll(); return; }
+  if(r.status==='idle') return;
+  atbRender(r);
+  if(!(r.status==='running'||r.status==='paused'||r.status==='stopping')){
+    atbStopPoll();
+    if(r.status==='done' && window.__sheetOn && !window.__sheetSent){ window.__sheetSent=true; sheetSendFromBatch(true); }
+  }
+}
+function atbRestore(){ atbRefresh(); }  // khoi phuc me dang chay khi mo lai tab hang loat
+$('#btnAtbStart').onclick=async()=>{
+  const titles=atbTitles();
+  if(!titles.length){ $('#atbNote').innerHTML='<span class="err">Hãy dán tiêu đề hoặc tải file .txt (mỗi dòng 1 tiêu đề).</span>'; return; }
+  const items=titles.map(t=>({title:t,dna_name:$('#atbSel').value}));
+  window.__sheetSent=false;  // me moi -> cho phep tu dong gui Sheet 1 lan
+  const r=await api('/api/batch/start',{kind:'aititles',items});
+  if(!r.ok){ $('#atbNote').innerHTML='<span class="err">'+esc(r.error)+'</span>'; return; }
+  $('#atbNote').innerHTML='Đang chạy <b>'+titles.length+'</b> tiêu đề… (chạy nền, có thể tạm dừng)';
+  atbRender(r); atbStartPoll();
+};
+$('#btnAtbPause').onclick=async()=>{ atbRender(await api('/api/batch/pause',{})); };
+$('#btnAtbResume').onclick=async()=>{ atbRender(await api('/api/batch/resume',{})); atbStartPoll(); };
+$('#btnAtbStop').onclick=async()=>{ atbRender(await api('/api/batch/stop',{})); };
+$('#btnAtbCopy').onclick=async()=>{
+  const r=await (await fetch('/api/batch/status')).json();
+  const txt=(r.items||[]).filter(it=>it.prompt).map((it,i)=>('['+(i+1)+'] '+it.title+'\n'+it.prompt)).join('\n\n');
+  navigator.clipboard.writeText(txt); $('#btnAtbCopy').textContent='Đã copy ✓';
+};
+$('#btnAtbExport').onclick=async()=>{
+  const r=await (await fetch('/api/batch/status')).json();
+  const txt=(r.items||[]).map((it,i)=>('['+(i+1)+'] '+it.title+'\n'+(it.prompt||'(lỗi/chưa có)')).trim()).join('\n\n');
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='prompt-thumbnail-hangloat.txt'; a.click();
+};
+function thumbDnaHtml(t){
+  t=t||{}; const mau=(t.bang_mau||[]).join(', '); const tx=t.text_tren_thumb||{}; const bc=t.boi_canh||{}; const ct=t.chu_the_chinh||{};
+  let h='<h4 style="margin:10px 0 4px;font-size:13px">DNA Thumbnail (phân tích sâu)</h4><div class="muted" style="line-height:1.9">';
+  const nv=t.nhan_vat_dna||{};
+  if(ct.la_gi||ct.ty_le_chiem||ct.vi_tri) h+='🎯 <b>Chủ thể chính:</b> '+esc(ct.la_gi||'')+(ct.ty_le_chiem?(' · chiếm '+esc(ct.ty_le_chiem)):'')+(ct.vi_tri?(' · vị trí: '+esc(ct.vi_tri)):'')+'<br>';
+  if(t.bo_cuc_chung) h+='🧩 <b>Bố cục chung:</b> '+esc(t.bo_cuc_chung)+'<br>';
+  if(mau) h+='🎨 <b>Màu:</b> '+esc(mau)+'<br>';
+  if(tx.font||tx.mau_chu||tx.vien_chu||tx.cach_the_hien) h+='🔤 <b>Text / Font:</b> '+esc(tx.font||tx.cach_the_hien||'')+(tx.mau_chu?(' · màu <b>'+esc(tx.mau_chu)+'</b>'):'')+(tx.vien_chu?(' · viền: '+esc(tx.vien_chu)):'')+(tx.hieu_ung?(' · '+esc(tx.hieu_ung)):'')+(tx.quan_he_voi_tieu_de?(' · <i>quan hệ tiêu đề:</i> '+esc(tx.quan_he_voi_tieu_de)):'')+'<br>';
+  if(t.khoa_chu_en) h+='🔒 <b>Chữ đã khóa (bất biến mọi thumb):</b> <span style="color:#8fd6a0">'+esc(t.khoa_chu_en)+'</span><br>';
+  if(nv.co_nhan_vat_co_dinh) h+='🧑 <b>Nhân vật cố định:</b> '+esc(nv.dau_mat||'')+(nv.toc?(' · tóc: '+esc(nv.toc)):'')+(nv.trang_phuc?(' · trang phục: '+esc(nv.trang_phuc)):'')+(nv.ty_le_dau_than?(' · tỷ lệ: '+esc(nv.ty_le_dau_than)):'')+'<br>';
+  if(t.khoa_nhan_vat_en) h+='🔒 <b>Nhân vật đã khóa (bất biến mọi thumb):</b> <span style="color:#8fd6a0">'+esc(t.khoa_nhan_vat_en)+'</span><br>';
+  if(t.cam_giac_nguoi_xem) h+='💭 <b>Cảm giác:</b> '+esc(t.cam_giac_nguoi_xem)+'<br>';
+  if(t.do_dong_nhat) h+='🧬 <b>Độ đồng nhất:</b> '+esc(t.do_dong_nhat)+'<br>';
+  if(bc.tien_canh||bc.trung_canh||bc.hau_canh) h+='🏞️ <b>Bối cảnh:</b> tiền: '+esc(bc.tien_canh||'—')+' · trung: '+esc(bc.trung_canh||'—')+' · hậu: '+esc(bc.hau_canh||'—')+'<br>';
+  if(t.bo_cuc_vang) h+='📐 <b>Bố cục vàng:</b> '+esc(t.bo_cuc_vang)+'<br>';
+  if(t.anh_sang) h+='💡 <b>Ánh sáng:</b> '+esc(t.anh_sang)+'<br>';
+  h+='</div>';
+  if(t.style_prompt_en) h+='<pre style="margin-top:6px">'+esc(t.style_prompt_en)+'</pre>';
+  return h;
+}
+function contentDnaHtml(c){
+  c=c||{}; const mau=(c.bang_mau||[]).join(', ');
+  let h='<h4 style="margin:10px 0 4px;font-size:13px">DNA Ảnh nội dung (phân tích sâu)</h4><div class="muted" style="line-height:1.9">';
+  if(c.phong_cach_ve) h+='✏️ <b>Phong cách vẽ:</b> '+esc(c.phong_cach_ve)+'<br>';
+  if(c.do_don_gian) h+='🔹 <b>Độ đơn giản:</b> '+esc(c.do_don_gian)+'<br>';
+  if(c.bo_cuc) h+='🧩 <b>Bố cục:</b> '+esc(c.bo_cuc)+'<br>';
+  if(mau) h+='🎨 <b>Màu:</b> '+esc(mau)+'<br>';
+  if(c.chu_the) h+='👤 <b>Chủ thể:</b> '+esc(c.chu_the)+'<br>';
+  if(c.text_trong_anh) h+='🔤 <b>Text trong ảnh:</b> '+esc(c.text_trong_anh)+'<br>';
+  if(c.vai_tro_minh_hoa) h+='🖼️ <b>Vai trò minh họa:</b> '+esc(c.vai_tro_minh_hoa)+'<br>';
+  if(c.nen) h+='🏳️ <b>Nền:</b> '+esc(c.nen)+'<br>';
+  if(c.cam_xuc) h+='💭 <b>Cảm xúc:</b> '+esc(c.cam_xuc)+'<br>';
+  h+='</div>';
+  if(c.style_prompt_en) h+='<pre style="margin-top:6px">'+esc(c.style_prompt_en)+'</pre>';
+  return h;
+}
+function renderDna(r){
+  const t=r.dna.thumbnail_dna||{}, c=r.dna.content_dna||{};
+  let extra=''; if(r.video_title!==undefined) extra='<p class="muted">Từ video: '+esc(r.video_title||'')+' · '+(r.frames_count||0)+' khung'+(r.has_thumbnail?' + thumbnail':'')+'</p>';
+  $('#dnaOut').innerHTML='<p style="margin-top:12px">✅ Đã lưu DNA: <b>'+esc(r.name)+'</b></p>'+extra+
+    thumbDnaHtml(t)+contentDnaHtml(c);
+  loadDna(r.name); loadProjects();
+}
+$('#btnDna').onclick=async()=>{
+  const name=$('#dnaName').value.trim(); if(!name){alert('Đặt tên hồ sơ DNA');return;}
+  const fd=new FormData(); fd.append('name',name); fd.append('type','ai');
+  for(const f of $('#dnaThumbs').files) fd.append('thumbnails',f);
+  for(const f of $('#dnaContents').files) fd.append('contents',f);
+  if(!$('#dnaThumbs').files.length && !$('#dnaContents').files.length){alert('Tải lên ít nhất 1 ảnh');return;}
+  const b=$('#btnDna'); b.disabled=true; b.textContent='Đang nhìn ảnh...';
+  const pg=makeProgress($('#dnaOut'),'Gemini đang phân tích ảnh');
+  try{const r=await (await fetch('/api/image-dna',{method:'POST',body:fd})).json();
+    pg.stop();
+    if(!r.ok)$('#dnaOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; else renderDna(r);
+  }catch(e){pg.stop();$('#dnaOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='③ Phân tích & Lưu DNA';
+};
+$('#btnDnaVideo').onclick=async()=>{
+  const name=$('#dnaName').value.trim(); if(!name){alert('Đặt tên hồ sơ DNA (ô bên trên)');return;}
+  const url=$('#dnaVideoUrl').value.trim(); if(!url){alert('Dán link video');return;}
+  const b=$('#btnDnaVideo'); b.disabled=true; b.textContent='Đang tải & cắt khung...';
+  const pg=makeProgress($('#dnaOut'),'Đang tải & phân tích (30–90 giây)');
+  try{const r=await api('/api/video-dna',{name:name,video_url:url,type:'ai',frames:$('#dnaFrames').value});
+    pg.stop();
+    if(!r.ok)$('#dnaOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; else renderDna(r);
+  }catch(e){pg.stop();$('#dnaOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Phân tích link & Lưu DNA';
+};
+
+// ---------- TAB BAN CONTENT ----------
+async function loadBc(selected){
+  const r=await (await fetch('/api/dna?type=ban_content')).json();
+  const list=r.dna||[];
+  const sel=$('#bcSel'); sel.innerHTML='<option value="">(chọn dự án)</option>';
+  const selB=$('#bcBatchSel'); if(selB) selB.innerHTML='<option value="">(chọn dự án)</option>';
+  const dl=document.getElementById('bcList'); if(dl) dl.innerHTML='';
+  list.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);
+    if(selB){const ob=document.createElement('option');ob.value=d.name;ob.textContent=d.name;selB.appendChild(ob);}
+    if(dl){const o2=document.createElement('option');o2.value=d.name;dl.appendChild(o2);}});
+  if(selected && [...sel.options].some(o=>o.value===selected)) sel.value=selected;
+  if(selB && selected && [...selB.options].some(o=>o.value===selected)) selB.value=selected;
+}
+function renderBcDna(r){
+  const t=r.dna.thumbnail_dna||{};
+  let extra=''; if(r.video_title!==undefined) extra='<p class="muted">Từ: '+esc(r.video_title||'')+'</p>';
+  $('#bcOut').innerHTML='<p style="margin-top:12px">✅ Đã lưu dự án Bán Content: <b>'+esc(r.name)+'</b></p>'+extra+thumbDnaHtml(t);
+  loadBc(r.name);
+}
+$('#btnBc').onclick=async()=>{
+  const name=$('#bcName').value.trim(); if(!name){alert('Đặt tên dự án');return;}
+  if(!$('#bcThumbs').files.length){alert('Tải lên ít nhất 1 ảnh thumbnail');return;}
+  const fd=new FormData(); fd.append('name',name); fd.append('type','ban_content');
+  for(const f of $('#bcThumbs').files) fd.append('thumbnails',f);
+  const b=$('#btnBc'); b.disabled=true; b.textContent='Đang phân tích...';
+  const pg=makeProgress($('#bcOut'),'Gemini đang phân tích thumbnail');
+  try{const r=await (await fetch('/api/image-dna',{method:'POST',body:fd})).json();
+    pg.stop();
+    if(!r.ok)$('#bcOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; else renderBcDna(r);
+  }catch(e){pg.stop();$('#bcOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Phân tích & Lưu DNA';
+};
+$('#btnBcVideo').onclick=async()=>{
+  const name=$('#bcName').value.trim(); if(!name){alert('Đặt tên dự án (ô trên)');return;}
+  const url=$('#bcVideoUrl').value.trim(); if(!url){alert('Dán link kênh/video');return;}
+  const b=$('#btnBcVideo'); b.disabled=true; b.textContent='Đang lấy thumbnail...';
+  const pg=makeProgress($('#bcOut'),'Đang lấy thumbnail & phân tích');
+  try{const r=await api('/api/video-dna',{name:name,video_url:url,type:'ban_content'});
+    pg.stop();
+    if(!r.ok)$('#bcOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; else renderBcDna(r);
+  }catch(e){pg.stop();$('#bcOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='Phân tích link & Lưu DNA';
+};
+const EDITSTYLE='width:100%;min-height:56px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:13px/1.5 system-ui;resize:vertical';
+$('#btnBcDecompose').onclick=async()=>{
+  const title=$('#bcTitle').value.trim(); if(!title){alert('Nhập tiêu đề');return;}
+  const b=$('#btnBcDecompose'); b.disabled=true; b.textContent='Đang bóc tách...';
+  const pg=makeProgress($('#bcDecomposeBox'),'Đang bóc tách tiêu đề'); $('#bcThumbOut').innerHTML='';
+  try{
+    const r=await api('/api/decompose-title',{name:$('#bcSel').value,title:title});
+    pg.stop();
+    if(!r.ok){$('#bcDecomposeBox').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      $('#bcDecomposeBox').innerHTML=
+        '<div class="card" style="background:#141a21;margin-top:10px">'+
+        '<div class="muted">📌 <b>Tiêu đề nói về:</b> '+esc(r.phan_tich_tieu_de||'')+'</div>'+
+        '<div class="muted" style="margin-top:4px">🧩 <b>Bóc tách:</b> '+esc(r.giai_thich||'')+'</div>'+
+        '<div style="margin-top:10px"><label>🎯 Chủ thể chính (sửa được)</label>'+
+          '<textarea id="bcChuThe" style="'+EDITSTYLE+'">'+esc(r.chu_the_chinh||'')+'</textarea></div>'+
+        '<div style="margin-top:8px"><label>🏞️ Bối cảnh xung quanh (sửa được)</label>'+
+          '<textarea id="bcBoiCanh" style="'+EDITSTYLE+';min-height:70px">'+esc(r.boi_canh_de_xuat||'')+'</textarea></div>'+
+        '<button id="btnBcGen" style="margin-top:10px" onclick="bcGenerate()">② Tạo 3 prompt (theo chủ thể/bối cảnh trên)</button>'+
+        '</div>';
+    }
+  }catch(e){pg.stop();$('#bcDecomposeBox').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  b.disabled=false; b.textContent='① Bóc tách tiêu đề';
+};
+
+async function bcGenerate(){
+  const title=$('#bcTitle').value.trim();
+  const chu_the=$('#bcChuThe')?$('#bcChuThe').value.trim():'';
+  const boi_canh=$('#bcBoiCanh')?$('#bcBoiCanh').value.trim():'';
+  const b=$('#btnBcGen'); if(b){b.disabled=true;b.textContent='Đang tạo 3 prompt...';}
+  const pg=makeProgress($('#bcThumbOut'),'Đang tạo 3 phương án bố cục');
+  try{
+    const r=await api('/api/thumb-from-title',{name:$('#bcSel').value,title:title,chu_the:chu_the,boi_canh:boi_canh});
+    pg.stop();
+    if(!r.ok){$('#bcThumbOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
+    else{
+      const best=r.de_xuat_tot_nhat||{};
+      $('#bcThumbOut').innerHTML=
+        (best.vi_tri?('<div class="banner-ok" style="margin-top:10px">⭐ <b>Đề xuất tốt nhất: lệch '+esc(best.vi_tri)+'</b> (thumbnail + tiêu đề bổ trợ nhau → tăng CTR) — '+esc(best.ly_do||'')+'</div>'):'')+
+        '<p class="muted" style="margin-top:8px">🎬 3 phương án bố cục điện ảnh (chủ thể >70%, rõ khi thu nhỏ, KHÔNG chữ):</p>'+
+        (r.prompts||[]).map(pr=>{
+          const isBest=best.vi_tri && pr.vi_tri===best.vi_tri;
+          return '<div style="border:1px solid '+(isBest?'var(--acc2)':'var(--line)')+';border-radius:8px;padding:10px;margin-top:8px">'+
+            '<div><b>📍 Chủ thể lệch '+esc(pr.vi_tri||'')+(isBest?' ⭐ (đề xuất)':'')+'</b></div>'+
+            '<pre style="margin-top:4px">'+esc(pr.prompt_en||'')+'</pre>'+
+            '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent);this.textContent=\'Đã copy ✓\'">Copy prompt</button></div>';
+        }).join('');
+    }
+  }catch(e){pg.stop();$('#bcThumbOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  if(b){b.disabled=false;b.textContent='② Tạo 3 prompt (theo chủ thể/bối cảnh trên)';}
+}
+
+// ---------- BAN CONTENT: HANG LOAT tieu de ----------
+let bcBatchTimer=null, bcBatchData=null;
+function bcBatchBadge(st,it){
+  if(st==='done') return '<span style="color:var(--acc2)">✅ Xong</span>';
+  if(st==='running') return '<span style="color:#4aa3ff">🔄 Đang làm…</span>';
+  if(st==='error') return '<span class="err" title="'+esc((it&&it.error)||'')+'">❌ Lỗi</span>';
+  return '<span class="muted">⏳ Chờ</span>';
+}
+$('#btnBcBatchStart').onclick=async()=>{
+  const name=($('#bcBatchSel')||{}).value||'';
+  const titles=$('#bcBatchTitles').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!titles.length){alert('Dán ít nhất 1 tiêu đề (mỗi dòng 1 cái).');return;}
+  const items=titles.map(t=>({title:t,dna_name:name}));
+  const r=await api('/api/batch/start',{kind:'bctitles',items});
+  if(!r.ok){alert(r.error);return;}
+  applyBcBatch(r); startBcBatchPolling();
+};
+$('#btnBcBatchStop').onclick=async()=>{applyBcBatch(await api('/api/batch/stop',{}));};
+function startBcBatchPolling(){
+  if(bcBatchTimer) clearInterval(bcBatchTimer);
+  bcBatchTimer=setInterval(async()=>{
+    let r; try{ r=await (await fetch('/api/batch/status')).json(); }catch(e){return;}
+    if(!r.ok || (r.kind && r.kind!=='bctitles')){ clearInterval(bcBatchTimer); bcBatchTimer=null; return; }
+    applyBcBatch(r);
+    if(!(r.status==='running'||r.status==='paused'||r.status==='stopping')){ clearInterval(bcBatchTimer); bcBatchTimer=null; }
+  },1500);
+}
+function applyBcBatch(r){
+  bcBatchData=r;
+  const active=(r.status==='running'||r.status==='paused'||r.status==='stopping');
+  const tb=$('#bcBatchTable').querySelector('tbody');
+  $('#bcBatchTable').hidden=!(r.items&&r.items.length);
+  tb.innerHTML=(r.items||[]).map((it,i)=>
+    '<tr><td>'+(i+1)+'</td><td>'+esc(it.title)+'</td><td class="muted">'+esc(it.best_pos||'')+'</td>'+
+    '<td>'+(it.prompt?('<pre style="margin:0;white-space:pre-wrap">'+esc(it.prompt)+'</pre>'):'<span class="muted">—</span>')+'</td>'+
+    '<td>'+bcBatchBadge(it.state,it)+'</td></tr>').join('');
+  const pct=r.pct||0;
+  $('#bcBatchProg').innerHTML='<div class="prog"><div class="progbar" style="width:'+pct+'%"></div></div>'+
+    '<div class="progtxt muted">'+pct+'% · '+(r.finished||0)+'/'+(r.total||0)+' tiêu đề'+
+    (active?(' · đang làm #'+((r.cur||0)+1)):'')+(r.status==='done'?' · ✅ hoàn tất':'')+(r.status==='stopped'?' · ⏹ đã dừng':'')+'</div>';
+  $('#btnBcBatchStart').style.display=active?'none':'';
+  $('#btnBcBatchStart').textContent=(r.status==='done'||r.status==='stopped')?'▶ Chạy lại':'▶ Tạo prompt hàng loạt';
+  $('#btnBcBatchStop').hidden=!active;
+  const anyDone=(r.done||0)>0 && !active;
+  $('#btnBcBatchExport').hidden=!anyDone;
+  $('#btnBcBatchCopy').hidden=!anyDone;
+}
+function bcBatchDoneList(){
+  return ((bcBatchData&&bcBatchData.items)||[]).filter(it=>it.state==='done' && it.prompt);
+}
+$('#btnBcBatchExport').onclick=()=>{
+  const list=bcBatchDoneList(); if(!list.length){alert('Chưa có prompt nào.');return;}
+  const txt=list.map((it,i)=>'['+String(i+1).padStart(3,'0')+'] '+it.title+(it.best_pos?(' ('+it.best_pos+')'):'')+'\n'+it.prompt+'\n').join('\n');
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='thumbnail-prompts.txt';a.click();
+};
+$('#btnBcBatchCopy').onclick=()=>{
+  const list=bcBatchDoneList(); if(!list.length){alert('Chưa có prompt nào.');return;}
+  navigator.clipboard.writeText(list.map(it=>it.prompt).join('\n\n'));
+  $('#btnBcBatchCopy').textContent='Đã copy ✓';
+};
+
+// ---------- THU VIEN ----------
+async function loadLibrary(){
+  try{
+    const rp=await (await fetch('/api/profiles')).json();
+    const list=rp.profiles||[];
+    $('#libKhuon').innerHTML=list.length? list.map(p=>{
+      const nm=encodeURIComponent(p.name);
+      return '<div class="libitem"><div class="meta"><div class="nm">📝 '+esc(p.name)+'</div>'+
+        '<div class="muted">'+esc(p.channel_url||'')+'</div></div>'+
+        '<div style="display:flex;gap:6px"><button class="ghost" onclick="useProfile(\''+nm+'\')">Dùng</button>'+
+        '<button style="background:#5a2a2a" onclick="delProfile(\''+nm+'\')">Xoá</button></div></div>';
+    }).join(''):'<p class="muted">Chưa có. Tạo ở tab Tiêu đề → Bước 1.</p>';
+  }catch(e){$('#libKhuon').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+  await loadDnaGroup('ai','#libAi','Chưa có dự án AI. Tạo ở tab AI → Bước 1.');
+  await loadDnaGroup('ban_content','#libBc','Chưa có dự án Bán Content. Tạo ở tab Bán Content → Bước 1.');
+  try{
+    const ru=await (await fetch('/api/used')).json();
+    const list=(ru.used||[]).slice().reverse();
+    $('#libUsed').innerHTML=list.length? list.map(e=>
+      '<div class="libitem"><div class="meta"><div class="nm">'+esc(e.tieu_de_final||e.title_goc)+'</div>'+
+      '<div class="muted">từ khóa: <b>'+esc(e.keyword)+'</b> · gốc: '+esc(e.title_goc)+' · '+nf(e.views)+' view · '+esc(e.created_at||'')+'</div></div>'+
+      '<button style="background:#5a2a2a" onclick="delUsed(\''+encodeURIComponent(e.keyword)+'\',\''+esc(e.video_id)+'\')">Bỏ đánh dấu</button></div>'
+    ).join(''):'<p class="muted">Chưa có tiêu đề nào được đánh dấu "Đã dùng".</p>';
+  }catch(e){$('#libUsed').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+}
+async function loadDnaGroup(type, elSel, empty){
+  try{
+    const r=await (await fetch('/api/dna?type='+type)).json();
+    const list=r.dna||[];
+    $(elSel).innerHTML=list.length? list.map(d=>{
+      const nm=encodeURIComponent(d.name);
+      return '<div class="libitem"><div class="meta"><div class="nm">📁 '+esc(d.name)+'</div>'+
+        '<div class="muted">lưu '+esc(d.created_at||'')+'</div></div>'+
+        '<div style="display:flex;gap:6px"><button class="ghost" onclick="useDna(\''+nm+'\',\''+type+'\')">Dùng</button>'+
+        '<button style="background:#5a2a2a" onclick="delDna(\''+nm+'\',\''+type+'\')">Xoá</button></div></div>';
+    }).join(''):'<p class="muted">'+empty+'</p>';
+  }catch(e){$(elSel).innerHTML='<p class="err">'+esc(String(e))+'</p>';}
+}
+$('#btnLibReload').onclick=loadLibrary;
+async function delUsed(kw,vid){kw=decodeURIComponent(kw);
+  if(!confirm('Bỏ đánh dấu "Đã dùng"? Video này có thể xuất hiện lại khi quét từ khóa đó.'))return;
+  await api('/api/used/delete',{keyword:kw,video_id:vid}); loadLibrary();
+}
+async function useProfile(n){n=decodeURIComponent(n);localStorage.setItem('defProfile',n);await loadProfiles(n);loadLibrary();showTab('title');}
+async function delProfile(n){n=decodeURIComponent(n);if(!confirm('Xoá khuôn tiêu đề "'+n+'"?'))return;await api('/api/profiles/delete',{name:n});if(localStorage.getItem('defProfile')===n)localStorage.removeItem('defProfile');await loadProfiles();loadProjects();loadLibrary();}
+async function useDna(n,type){n=decodeURIComponent(n);
+  if(type==='ban_content'){await loadBc(n);showTab('bancontent');}
+  else{localStorage.setItem('defDna',n);await loadDna(n);showTab('title');
+    const p=document.getElementById('p-title'); const i=subsOf(p).findIndex(s=>(s.dataset.name||'').includes('Prompt Thumbnail')); if(i>=0) showSub(p,i);}
+  loadLibrary();
+}
+async function delDna(n,type){n=decodeURIComponent(n);
+  if(!confirm('Xoá dự án "'+n+'" ('+(type==='ban_content'?'Bán Content':'AI')+')?'))return;
+  await api('/api/dna/delete',{name:n,type:type});
+  if(localStorage.getItem('defDna')===n)localStorage.removeItem('defDna');
+  await loadDna(); await loadBc(); loadProjects(); loadLibrary();
+}
+
+// ---------- DU AN (gop khuon + DNA theo ten) ----------
+async function loadProjects(){
+  try{
+    const r=await (await fetch('/api/projects')).json();
+    const dl=document.getElementById('projList'); dl.innerHTML='';
+    (r.projects||[]).forEach(p=>{const o=document.createElement('option');o.value=p.name;o.label=(p.has_khuon?'✓khuôn ':'')+(p.has_dna?'✓DNA':'');dl.appendChild(o);});
+  }catch(e){}
+}
+
+// ---------- KHOI DONG ----------
+loadConfig().then(r=>{ if(r && (r.has_llm_key||r.has_youtube_key)) checkApi(); });
+loadProfiles(); loadDna(); loadBc(); loadProjects();
+</script>
+</body>
+</html>
