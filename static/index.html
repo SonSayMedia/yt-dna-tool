@@ -1069,7 +1069,10 @@ async function thumbRecreate(btn){
     const r=await api('/api/thumb-breakdown-ref',{name:sel.value,items:[{title,thumbnail_url:x.thumbnail}]});
     pg.stop();
     if(!r.ok){ $('#aiBreakOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; }
-    else aiShowBreak(title,r.items[0].breakdown,r.items[0],x.thumbnail);
+    else{
+      aiShowBreak(title,r.items[0].breakdown,r.items[0],x.thumbnail);
+      if(!sel.value) $('#aiBreakOut').insertAdjacentHTML('afterbegin','<p class="err" style="margin:8px 0">⚠️ Anh chưa chọn <b>DNA thumbnail</b> ở ô “Dùng dự án nào?” — prompt sẽ không có khóa font/bố cục/nhân vật của kênh. Hãy chọn DNA rồi bấm lại “🎨 Tái tạo theo DNA”.</p>');
+    }
   }catch(e){ pg.stop(); $('#aiBreakOut').innerHTML='<p class="err">'+esc(String(e))+'</p>'; }
   b.disabled=false; b.textContent='① Bóc tách tiêu đề';
 }
@@ -1182,7 +1185,7 @@ function bkBlockHtml(title, bk, idx, total, refUrl, refInfo){
       '<img src="'+esc(refUrl)+'" alt="thumbnail đối thủ" referrerpolicy="no-referrer" style="width:130px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;border:1px solid var(--line)">'+
       '<div class="muted" style="flex:1;font-size:12px;line-height:1.5">'+
         (ok?('🎨 <b>Ý tưởng lấy từ thumbnail đối thủ</b>'+(bk.y_tuong_goc?(': '+esc(bk.y_tuong_goc)):'')+
-            '<br>Chỉ mượn ý tưởng (chủ thể · hành động · cảm xúc) — <b>không</b> chép chữ, nhân vật, logo của họ. Phong cách/bố cục/font/nhân vật theo DNA của anh.')
+            '<br>Vẽ lại theo <b>bố cục</b> của thumbnail đối thủ, nhưng <b>nội dung theo từ khóa/tiêu đề mới</b>; phong cách · màu · font · nhân vật theo DNA của anh. <b>Không</b> chép chữ, nhân vật, logo của họ.')
            :('⚠️ <b>Không đọc được thumbnail</b> — đã bóc tách theo tiêu đề.'+(refInfo&&refInfo.note?(' ('+esc(refInfo.note)+')'):'')))+
       '</div></div>';
   }
@@ -1192,7 +1195,11 @@ function bkBlockHtml(title, bk, idx, total, refUrl, refInfo){
     '<div class="muted" style="margin:6px 0 3px">① Bóc tách theo công thức tiêu đề</div>'+
     '<div class="bkgrid">'+BK_FORMULA.map(f=>bkFieldHtml(f,bk[f[0]])).join('')+'</div>'+
     '<div class="muted" style="margin:8px 0 3px">② Suy ra hình thumbnail <b>(anh sửa được trước khi sinh)</b></div>'+
-    '<div class="bkgrid">'+BK_VISUAL.map(f=>bkFieldHtml(f,bk[f[0]])).join('')+'</div></div>';
+    '<div class="bkgrid">'+BK_VISUAL.map(f=>bkFieldHtml(f,bk[f[0]])).join('')+'</div>'+
+    (bk.bo_cuc_tham_chieu!==undefined&&refUrl?('<div class="bkf" style="margin-top:8px"><label>③ Bố cục thumbnail đối thủ <span class="muted" style="font-weight:400">'+
+      '← sẽ vẽ lại theo đúng bố cục này (vị trí · tỷ lệ · góc máy · vùng chữ); xóa trống nếu muốn dùng bố cục khóa của kênh</span></label>'+
+      '<textarea data-k="bo_cuc_tham_chieu" rows="2">'+esc(bk.bo_cuc_tham_chieu||'')+'</textarea></div>'):'')+
+    '</div>';
 }
 function bkRead(block){ const o={}; block.querySelectorAll('[data-k]').forEach(el=>{ o[el.dataset.k]=el.value.trim(); }); return o; }
 

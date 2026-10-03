@@ -242,6 +242,16 @@ def _font_lock_block(thumbnail_dna):
             + "; ".join(parts))
 
 
+def _strip_font_position(font_lock):
+    """Bo cum chi VI TRI chu (vd 'centered at the very top') khoi khoa font de khong de len bo cuc tham chieu.
+    Chi dung khi ve lai theo bo cuc thumbnail doi thu; kieu chu/mau/vien giu nguyen."""
+    import re
+    s = re.sub(r",?\s*(?:(?:horizontally\s+)?cent(?:ered|red)\s+)?(?:at|in|on)\s+the\s+(?:very\s+)?"
+               r"(?:top|bottom|upper|lower)(?:[\s-](?:center|centre|left|right|third|part|area))?"
+               r"(?:\s+of\s+the\s+(?:frame|image|canvas|thumbnail))?", "", font_lock or "", flags=re.I)
+    return s
+
+
 def _richness_hint_block(thumbnail_dna):
     """Gom CONG THUC BIEU CAM (mat-may-mieng theo tung nhom cam xuc) + BOI CANH trung/tien/hau canh
     tu DNA thanh 1 doan THAM KHAO de lam giau noi dung o trong (bieu cam cu the hon, co nhan vat phu/
@@ -308,6 +318,70 @@ def _empty_breakdown():
     return b
 
 
+# ---- Tieng Viet CO DAU 100% cho cac o boc tach (nguoi dung doc de kiem tra) ----
+VN_DIACRITIC_RULE = (
+    "\nQUY TẮC NGÔN NGỮ (BẮT BUỘC): MỌI ô mô tả (vấn đề, khoảng trống tò mò, bối cảnh, chủ thể, hành động, cảm xúc, "
+    "thế giới cảnh, ý tưởng, bố cục) PHẢI viết bằng TIẾNG VIỆT CÓ DẤU đầy đủ (ví dụ: “người tiền sử tìm kiếm khoái cảm”). "
+    "TUYỆT ĐỐI KHÔNG viết tiếng Việt không dấu (kiểu “nguoi tien su”), KHÔNG viết tiếng Anh hay tiếng của tiêu đề "
+    "trong các ô này — dù tiêu đề gốc viết bằng ngôn ngữ nào, các ô vẫn là TIẾNG VIỆT CÓ DẤU."
+)
+VN_TEXT_KEYS = ("van_de", "to_mo", "boi_canh", "chu_the", "hanh_dong", "cam_xuc", "the_gioi_canh",
+                "y_tuong_goc", "bo_cuc_tham_chieu")
+_VN_MARKS = set("àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ")
+
+
+def _lacks_vn_diacritics(text):
+    """True neu o dai >= 8 chu cai ma KHONG co ky tu tieng Viet co dau nao (tieng Viet khong dau hoac tieng Anh)."""
+    t = (text or "").strip()
+    if sum(1 for c in t if c.isalpha()) < 8:
+        return False
+    return not any(c in _VN_MARKS for c in t.lower())
+
+
+def _fix_vn_diacritics(bks):
+    """Quet cac o boc tach: o nao thieu dau -> nho AI viet lai thanh tieng Viet CO DAU (toi da 2 luot).
+    Sua truc tiep tren list dict `bks`; loi mang/AI thi giu nguyen (khong lam hong ca loat)."""
+    import json
+    for _ in range(2):
+        bad = []
+        for i, b in enumerate(bks):
+            for k in VN_TEXT_KEYS:
+                if _lacks_vn_diacritics(b.get(k)):
+                    bad.append({"id": "%d|%s" % (i, k), "text": b[k]})
+        if not bad:
+            return bks
+        system = (
+            "Bạn là biên tập viên tiếng Việt. Nhận danh sách đoạn văn ngắn đang bị viết KHÔNG DẤU hoặc bằng ngôn ngữ khác. "
+            "Hãy viết lại MỖI đoạn thành TIẾNG VIỆT CÓ DẤU đầy đủ, giữ nguyên ý (nếu là tiếng Anh/ngôn ngữ khác thì DỊCH sang "
+            "tiếng Việt có dấu). Ngắn gọn như bản gốc. KHÔNG thêm ý mới."
+        )
+        user = ("Danh sách (JSON):\n" + json.dumps(bad, ensure_ascii=False) +
+                '\n\nTrả về JSON là MỘT MẢNG, mỗi phần tử {"id": "...", "text": "..."} giữ nguyên id.')
+        try:
+            res = llm.chat_json(system, user, temperature=0.1, role="analyze")
+        except Exception:
+            return bks
+        if isinstance(res, dict):
+            for key in ("items", "data", "result"):
+                if isinstance(res.get(key), list):
+                    res = res[key]
+                    break
+        if not isinstance(res, list):
+            return bks
+        for r in res:
+            if not isinstance(r, dict):
+                continue
+            try:
+                i_s, k = str(r.get("id", "")).split("|", 1)
+                i = int(i_s)
+            except ValueError:
+                continue
+            new = str(r.get("text") or "").strip()
+            if 0 <= i < len(bks) and k in VN_TEXT_KEYS and new and not _lacks_vn_diacritics(new):
+                bks[i][k] = new
+    return bks
+
+
 def decompose_titles_for_thumb(titles, thumbnail_dna=None):
     """Boc tach danh sach tieu de theo cong thuc cua nguoi dung roi suy ra hinh thumbnail.
     Tra ve list dict (cung thu tu `titles`), moi dict co cac khoa BREAK_KEYS (+ ngon_ngu_tieu_de)."""
@@ -328,9 +402,11 @@ def decompose_titles_for_thumb(titles, thumbnail_dna=None):
         "nhu 'ngac nhien'/'to mo'.\n"
         "- THE GIOI CANH <- boi canh: noi/thoi diem xay ra, BAM DUNG NOI DUNG TIEU DE (tieu de hien dai thi canh hien dai; "
         "tieu de lich su thi canh lich su). KHONG mac dinh the gioi dac trung cua kenh.\n"
-        "Moi truong viet NGAN GON (toi da ~14 tu), TIENG VIET CO DAU, de doc nhanh, KHONG van hoc thuat, KHONG tom tat dai dong."
+        "Moi truong viet NGAN GON (toi da ~14 tu), de doc nhanh, KHONG van hoc thuat, KHONG tom tat dai dong."
+        + VN_DIACRITIC_RULE
         + ("\nKENH CO NHAN VAT CO DINH (thiet ke da khoa, KHONG ta lai dau/toc/trang phuc): " + char_lock
-           + "\n=> truong chu_the PHAI la nhan vat nay: ghi 'nhan vat co dinh cua kenh' + no dang lam/tuong tac voi gi."
+           + "\n=> truong chu_the BAT BUOC bat dau bang cum “Nhân vật cố định của kênh” + no dang lam/tuong tac voi gi "
+             "(KHONG doi thanh nghe nghiep/nhan vat khac)."
            if char_lock else "")
     )
     schema = (
@@ -364,54 +440,68 @@ def decompose_titles_for_thumb(titles, thumbnail_dna=None):
                     idx = start + pos
                 if 0 <= idx < len(titles):
                     out[idx] = r
-    return [_clean_breakdown(out[i] or {}) for i in range(len(titles))]
+    return _fix_vn_diacritics([_clean_breakdown(out[i] or {}) for i in range(len(titles))])
 
 
 def _clean_breakdown(r):
-    """Chuan hoa 1 ket qua boc tach tu LLM thanh dict day du BREAK_KEYS (+ ngon_ngu_tieu_de, y_tuong_goc)."""
+    """Chuan hoa 1 ket qua boc tach tu LLM thanh dict day du BREAK_KEYS
+    (+ ngon_ngu_tieu_de; y_tuong_goc, bo_cuc_tham_chieu khi lay y tuong tu thumbnail doi thu)."""
     b = _empty_breakdown()
     for k in BREAK_KEYS:
         if k != "tu_huyet":
             b[k] = str(r.get(k) or "").strip()
     b["tu_huyet"] = _norm_tu_huyet(r.get("tu_huyet"))
     b["ngon_ngu_tieu_de"] = str(r.get("ngon_ngu_tieu_de") or "").strip()
-    if r.get("y_tuong_goc"):
-        b["y_tuong_goc"] = str(r.get("y_tuong_goc")).strip()
+    for k in ("y_tuong_goc", "bo_cuc_tham_chieu"):
+        if r.get(k):
+            b[k] = str(r.get(k)).strip()
     return b
 
 
 def breakdown_from_reference_thumb(image_bytes, new_title, thumbnail_dna=None):
-    """NHIN thumbnail cua DOI THU (da nhieu view) -> rut Y TUONG hinh anh -> tai tao cho TIEU DE MOI,
-    dien san 8 o boc tach (nguoi dung duyet/sua roi moi sinh prompt theo DNA cua kenh minh).
-    CHI MUON Y TUONG: khong chep chu, khong dung lai nhan vat/tac pham/logo/guong mat nguoi that cua doi thu."""
+    """NHIN thumbnail cua DOI THU (da nhieu view) -> rut BO CUC + Y TUONG -> ve lai cho TIEU DE MOI:
+    dien san cac o boc tach (nguoi dung duyet/sua roi moi sinh prompt).
+    BAM theo BO CUC cua anh doi thu (vi tri/ty le chu the, vat phu, vung chu, goc may, lop chieu sau) nhung NOI DUNG
+    theo tu khoa/van de cua TIEU DE MOI; phong cach/mau/font/nhan vat theo DNA kenh nguoi dung (ap o buoc sinh prompt).
+    KHONG chep chu, nhan vat, tac pham, logo, guong mat nguoi that cua doi thu."""
     char_lock = _character_lock_block(thumbnail_dna)
     system = (
         "Ban la giam doc sang tao thumbnail YouTube. Ban duoc xem THUMBNAIL CUA DOI THU (video da nhieu view) va 1 "
-        "TIEU DE MOI cua nguoi dung. Nhiem vu: rut ra Y TUONG HINH ANH dang sau thumbnail do (vi sao no hut click), "
-        "roi TAI TAO y tuong do cho TIEU DE MOI. Phong cach ve/bo cuc/font/nhan vat se duoc ap SAU theo DNA cua kenh "
-        "nguoi dung - ban chi quyet dinh NOI DUNG.\n"
+        "TIEU DE MOI cua nguoi dung. Nhiem vu: VE LAI thumbnail do cho TIEU DE MOI, theo 2 nguyen tac:\n"
+        "(A) BAM BO CUC cua thumbnail doi thu: chu the dat o dau va chiem bao nhieu % khung, vat/nhan vat phu o dau, "
+        "vung chu (tren/duoi/trai/phai), goc may (can canh/trung canh/toan canh), co bao nhieu lop tien/trung/hau canh, "
+        "huong nhin/huong hanh dong. Mo ta BO CUC nay vao truong bo_cuc_tham_chieu (CHI bo cuc: khong tai mau sac, "
+        "khong tai phong cach ve).\n"
+        "(B) NOI DUNG theo TIEU DE MOI (tu khoa, van de, boi canh cua tieu de moi) - KHONG ve lai noi dung cu cua doi thu. "
+        "Dat chu the/vat/hanh dong cua tieu de moi vao DUNG VI TRI & TY LE cua bo cuc tham chieu.\n"
+        "Phong cach ve/mau/font/nhan vat se duoc ap SAU theo DNA kenh nguoi dung - ban chi quyet dinh BO CUC va NOI DUNG.\n"
         "CONG THUC: tach TIEU DE MOI thanh VAN DE / KHOANG TRONG TO MO / BOI CANH / TU HUYET (So hai|To mo|Tham lam|Canh giac), "
         "roi SUY RA HINH: CHU THE <- van de; HANH DONG hoac BIEU TUONG <- khoang trong to mo; CAM XUC <- tu huyet "
-        "(ta CU THE mat-may-mieng, khong dung tinh tu chung chung); THE GIOI CANH <- boi canh.\n"
-        "LAY CAM HUNG tu thumbnail doi thu (y tuong, hanh dong, bieu tuong, cam xuc) NEU hop voi tieu de moi; "
-        "neu thumbnail khong lien quan hoac chi la khung hinh ngau nhien thi UU TIEN tieu de moi.\n"
-        "AN TOAN (BAT BUOC): chi muon Y TUONG. TUYET DOI KHONG: chep chu/van ban tren anh; dung lai nhan vat, tac pham, "
-        "logo, thiet ke rieng cua doi thu; mo ta guong mat hay dac diem nhan dang cua NGUOI THAT (neu anh co nguoi that "
-        "thi doi thanh nhan vat cua kenh nguoi dung hoac mot nhan vat chung chung). The gioi canh bam noi dung tieu de moi.\n"
-        "Moi truong viet NGAN GON (toi da ~14 tu), TIENG VIET CO DAU, de doc nhanh."
+        "(ta CU THE mat-may-mieng, khong dung tinh tu chung chung); THE GIOI CANH <- boi canh cua TIEU DE MOI. "
+        "Trong chu_the / hanh_dong / the_gioi_canh, GHI RO vi tri & ty le theo bo cuc tham chieu "
+        "(vd 'o ben trai, chiem khoang 40% khung').\n"
+        "Neu thumbnail doi thu khong lien quan tieu de moi, van lay BO CUC cua no nhung noi dung bam tieu de moi.\n"
+        "AN TOAN (BAT BUOC): TUYET DOI KHONG: chep chu/van ban tren anh; dung lai nhan vat, tac pham, logo, thiet ke "
+        "rieng cua doi thu; mo ta guong mat hay dac diem nhan dang cua NGUOI THAT (neu anh co nguoi that thi doi thanh "
+        "nhan vat cua kenh nguoi dung hoac mot nhan vat chung chung).\n"
+        "Moi truong viet NGAN GON (toi da ~25 tu cho bo_cuc_tham_chieu, ~16 tu cho cac truong khac), de doc nhanh."
+        + VN_DIACRITIC_RULE
         + ("\nKENH NGUOI DUNG CO NHAN VAT CO DINH (thiet ke da khoa, KHONG ta lai): " + char_lock
-           + "\n=> chu_the PHAI la 'nhan vat co dinh cua kenh' + no dang lam/tuong tac voi gi." if char_lock else "")
+           + "\n=> chu_the BAT BUOC bat dau bang cum “Nhân vật cố định của kênh” (KHONG doi thanh nghe nghiep/nhan vat khac "
+             "nhu nha khoa hoc, bac si...) + vi tri/ty le theo bo cuc tham chieu + no dang lam/tuong tac voi gi." if char_lock else "")
     )
     user = (
         "TIEU DE MOI: " + new_title + "\n\n"
         "Tra ve JSON dung cau truc:\n"
-        '{"y_tuong_goc": "Y TUONG hinh anh cua thumbnail doi thu va vi sao hut click (1 cau ngan, tieng Viet)",\n'
+        '{"y_tuong_goc": "Y TUONG hinh anh cua thumbnail doi thu va vi sao hut click (1 cau ngan)",\n'
+        ' "bo_cuc_tham_chieu": "BO CUC cua thumbnail doi thu: vi tri & ty le chu the, vat phu, vung chu, goc may, lop chieu sau",\n'
         ' "ngon_ngu_tieu_de": "ten ngon ngu cua tieu de moi, vd Spanish",\n'
         ' "van_de": "...", "to_mo": "...", "boi_canh": "...", "tu_huyet": "So hai|To mo|Tham lam|Canh giac",\n'
         ' "chu_the": "...", "hanh_dong": "...", "cam_xuc": "...", "the_gioi_canh": "..."}'
     )
     r = llm.chat_json(system, user, temperature=0.5, vision_images=[image_bytes])
-    return _clean_breakdown(r if isinstance(r, dict) else {})
+    bk = _clean_breakdown(r if isinstance(r, dict) else {})
+    return _fix_vn_diacritics([bk])[0]
 
 
 # Quy tac THE GIOI CANH: bam NOI DUNG TIEU DE, chi giu phong cach/mau/bo cuc/font/nhan vat co dinh cua kenh.
@@ -428,7 +518,13 @@ def _breakdown_block(bk):
     if not bk:
         return ""
     g = lambda k: (str(bk.get(k) or "").strip() or "(de trong - AI tu quyet)")
-    return (
+    layout = str(bk.get("bo_cuc_tham_chieu") or "").strip()
+    layout_line = (
+        "BO CUC THAM CHIEU (lay tu thumbnail doi thu da nhieu view; nguoi dung muon VE LAI theo dung bo cuc nay): %s\n"
+        "=> Moi o noi dung (chu the, vat, bieu tuong, nen) phai dat dung VI TRI & TY LE theo bo cuc tren; "
+        "NOI DUNG van la cua tieu de moi; phong cach/mau/font/nhan vat van theo DNA kenh.\n" % layout
+        if layout else "")
+    return layout_line + (
         "PHAN TICH TIEU DE DA DUOC NGUOI DUNG DUYET - BAT BUOC BAM SAT, KHONG tu y doi y:\n"
         "- Van de: %s\n- Khoang trong to mo: %s\n- Boi canh: %s\n- Tu huyet: %s\n"
         "=> HINH CAN VE:\n- Chu the: %s\n- Hanh dong/Bieu tuong: %s\n- Cam xuc nhan vat: %s\n- The gioi canh: %s\n"
@@ -465,6 +561,31 @@ def _neutralize_world(comp):
     if not ph(comp) <= ph(new):
         return None
     if not (0.6 <= len(new) / max(1, len(comp)) <= 1.7):
+        return None
+    return new
+
+
+def _adapt_template_layout(comp, ref_layout):
+    """Viet lai MAU BO CUC khoa cua kenh sao cho cach SAP XEP (vi tri/ty le chu the, vat phu, vung chu, goc may, lop
+    chieu sau) theo BO CUC THAM CHIEU (tieng Viet, lay tu thumbnail doi thu). Giu NGUYEN phong cach ve, bang mau, anh sang,
+    kieu chu/banner, nhan vat khoa va MOI o [[...]]. Tra ve None neu ket qua khong an toan."""
+    import re
+    ph = lambda s: set(re.findall(r"\[\[[A-Za-z_]+\]\]", s))
+    system = (
+        "Bạn là biên tập viên prompt thumbnail. Bạn nhận 1 TEMPLATE bố cục cố định (tiếng Anh, có các ô trống [[X]]) và 1 "
+        "BỐ CỤC THAM CHIẾU (tiếng Việt, lấy từ thumbnail đối thủ). Hãy viết lại TEMPLATE (tiếng Anh) sao cho CÁCH SẮP XẾP — "
+        "vị trí & tỷ lệ chủ thể, vật phụ, vùng đặt chữ, góc máy, số lớp tiền/trung/hậu cảnh — ĐÚNG THEO BỐ CỤC THAM CHIẾU. "
+        "GIỮ NGUYÊN 100%: phong cách vẽ, bảng màu, ánh sáng, kiểu chữ/banner (nội dung ô [[FONT]], [[HOOK]]), thiết kế nhân vật "
+        "cố định và MỌI ô trống [[...]] đã có. KHÔNG thêm màu/phong cách/nhân vật/chữ của thumbnail đối thủ. "
+        "Chỉ đổi phần bố trí không gian cho khớp bố cục tham chiếu."
+    )
+    user = ("TEMPLATE:\n" + comp + "\n\nBỐ CỤC THAM CHIẾU:\n" + ref_layout +
+            '\n\nTrả về JSON: {"template": "<template đã viết lại>"}')
+    r = llm.chat_json(system, user, temperature=0.2, role="analyze")
+    new = str((r or {}).get("template") or "").strip()
+    if not new or not ph(comp) <= ph(new):
+        return None
+    if not (0.6 <= len(new) / max(1, len(comp)) <= 1.8):
         return None
     return new
 
@@ -602,6 +723,7 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
             hook = val
         p = p.replace("[[" + s + "]]", val or s.lower().replace("_", " "))
     p = p.replace("[[FONT]]", font_lock or "")
+    p = p.replace(" in in ", " in ")   # mau "in [[FONT]]" + khoa font bat dau bang "in EXACTLY" -> bo "in" thua
     if char_lock:
         p = p + " " + char_lock
     return {
@@ -630,6 +752,13 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna, breakdown=None):
     richness_hint = _richness_hint_block(thumbnail_dna)
     comp_lock = (thumbnail_dna.get("khoa_bo_cuc_en") or "").strip() if thumbnail_dna else ""
     if comp_lock:
+        ref_layout = str((breakdown or {}).get("bo_cuc_tham_chieu") or "").strip()
+        if ref_layout:   # ve lai theo BO CUC thumbnail doi thu: chinh cach sap xep trong mau khoa (loi -> giu mau goc)
+            try:
+                comp_lock = _adapt_template_layout(comp_lock, ref_layout) or comp_lock
+            except Exception:
+                pass
+            font_lock = _strip_font_position(font_lock)   # khoa font van giu kieu chu, bo cau "o chinh giua phia tren"
         return _prompt_locked_composition(title, comp_lock, font_lock, char_lock, richness_hint, breakdown)
     dna_full = json.dumps(thumbnail_dna, ensure_ascii=False, indent=2) if thumbnail_dna else "(chua co DNA)"
     co_chu = bool(font_lock)

@@ -92,11 +92,16 @@ BƯỚC 4 — TẠO PROMPT THUMBNAIL
    TÁI TẠO THUMBNAIL CỦA ĐỐI THỦ THEO DNA CỦA BẠN (tùy chọn):
    - Bảng kết quả có cột "Thumbnail" (ảnh gốc của video đối thủ). Dưới mỗi ảnh có nút
      "🎨 Tái tạo theo DNA": AI NHÌN ảnh đó, lấy Ý TƯỞNG (chủ thể, hành động, cảm xúc) rồi điền
-     sẵn bảng bóc tách cho TIÊU ĐỀ MỚI của bạn → bạn sửa → sinh prompt theo font/bố cục/nhân vật
-     của kênh bạn. (Ở bảng "Viết lại tiêu đề" cũng có, khi bạn dán LINK video.)
+     sẵn bảng bóc tách cho TIÊU ĐỀ MỚI của bạn, gồm ô "③ Bố cục thumbnail đối thủ" (vị trí/tỷ lệ
+     chủ thể, vùng chữ, góc máy...). Bạn sửa → sinh prompt: ảnh được VẼ LẠI THEO BỐ CỤC đối thủ,
+     nội dung theo từ khóa/tiêu đề mới, còn phong cách · màu · font · nhân vật theo DNA kênh bạn.
+     (Ở bảng "Viết lại tiêu đề" cũng có, khi bạn dán LINK video.) Nhớ chọn DNA thumbnail ở ô
+     "Dùng dự án nào?" trước khi bấm. Muốn dùng bố cục khóa của kênh thay vì của đối thủ: xóa trống ô ③.
    - Làm cả loạt: sau khi bấm "Làm thumb cả loạt", tick ô "Lấy ý tưởng từ thumbnail đối thủ"
      rồi bấm "① Bóc tách tất cả" (mỗi ảnh tốn thêm ~5–10 giây).
-   - Chỉ MƯỢN Ý TƯỞNG: tool không chép chữ, nhân vật, logo hay gương mặt người thật của đối thủ.
+   - Chỉ mượn BỐ CỤC + Ý TƯỞNG: tool không chép chữ, nhân vật, logo hay gương mặt người thật của đối thủ.
+   - Mọi ô bóc tách luôn viết bằng TIẾNG VIỆT CÓ DẤU để bạn kiểm tra (ô nào AI lỡ viết không dấu
+     sẽ được tự động viết lại).
 
 💡 MẸO: "khuôn tiêu đề" (Bước 1) và "DNA thumbnail" (Bước 2) là 2 kho ĐỘC LẬP.
    Bạn có thể lấy tiêu đề theo kênh A và thumbnail theo kênh B cho cùng 1 ngách.
