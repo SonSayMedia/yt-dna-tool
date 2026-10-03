@@ -1,30 +1,45 @@
-# YT DNA Tool (localhost)
+# YT DNA Tool (chạy trên máy cá nhân)
 
-Phần mềm chạy trên máy cá nhân: **phân tích kênh → rút khuôn tiêu đề → quét từ khóa → tái tạo tiêu đề** theo khuôn kênh follow. (Tool 2: DNA ảnh + SRT→prompt sẽ bổ sung ở bước sau.)
+Phần mềm chạy ngay trên máy của bạn (localhost), làm **2 việc chính**:
 
-## Cần cài trước
-1. **Python 3.10+** — tải tại https://www.python.org/downloads/ (khi cài nhớ tick "Add Python to PATH").
-2. **ffmpeg** (chỉ cần cho Tool 2 sau này) — tải tại https://www.gyan.dev/ffmpeg/builds/ và thêm vào PATH.
+1. **Viết lại / tái tạo tiêu đề** YouTube theo "khuôn" của một kênh thành công (kèm từ khóa chính, dịch sang tiếng Việt, nhiều ngôn ngữ).
+2. **Tạo prompt thumbnail** (tiếng Anh, dán vào Google Flow / ChatGPT / Gemini để ra ảnh) đồng nhất phong cách kênh: khóa font chữ, khóa bố cục, khóa nhân vật; chữ trên thumbnail viết **cùng ngôn ngữ với tiêu đề**.
 
-## Cài đặt & chạy (Windows)
-1. Mở thư mục `yt-dna-tool`.
-2. Copy `config.example.json` → đổi tên thành `config.json`, điền 4 thông tin:
-   - `llm_base_url`: endpoint của 9router (thường kết thúc `/v1`)
-   - `llm_api_key`: khóa 9router
-   - `llm_model`: tên model Gemini Flash
-   - `llm_vision_model`: model có "mắt" (để trống = dùng chung `llm_model`)
-   - `youtube_api_key`: khóa YouTube Data API v3
-3. Nhấp đúp **`run.bat`** (lần đầu sẽ tự tạo môi trường ảo + cài thư viện).
-4. Mở trình duyệt: **http://127.0.0.1:5000**
+## Cần chuẩn bị
+| Thứ cần | Ghi chú |
+|---|---|
+| **Python 3.10+** | https://www.python.org/downloads/ — khi cài nhớ tick **"Add Python to PATH"** |
+| **9router** đang chạy trên máy | Cổng AI (Gemini...) — mặc định `http://127.0.0.1:20128/v1`. Cần 1 key 9router |
+| **YouTube Data API v3 key** | https://console.cloud.google.com → bật "YouTube Data API v3" → tạo API key (dạng `AIza...`) |
 
-## Đã có (Khối A, B, C, D)
-- **① Phân tích kênh**: dán link kênh → lấy 20 video top view → rút "khuôn tiêu đề" (Title DNA), lưu lại để tái dùng.
-- **② Quét từ khóa**: nhập từ khóa → chọn mốc thời gian (3 tháng–3 năm) hoặc **Trend 48h** → xếp theo tổng view → bóc tách 3 thành phần → **tái tạo tiêu đề** theo khuôn đã chọn, ngôn ngữ tùy chọn.
-- **③ DNA ảnh** (2 cách nạp):
-  - **Tải ảnh lên** thumbnail + ảnh nội dung, hoặc
-  - **Dán link video** → tool tự tải bản nhẹ (yt-dlp) + cắt khung hình (ffmpeg) + lấy thumbnail qua API.
-  - → Gemini vision → DNA thumbnail + DNA ảnh nội dung (kèm prompt tiếng Anh gắn sẵn), lưu lại.
-- **④ SRT → Prompt**: file SRT (tên file = tiêu đề) + chọn DNA → 1 prompt thumbnail (hiện trên màn hình) + N prompt ảnh (cắt cảnh theo nghĩa ≤6s, tiếng Anh) → tải `.txt` đánh số.
+*(Không cần ffmpeg hay yt-dlp — bản này chỉ lấy thumbnail, không tải video.)*
 
-## Lưu ý quota
-YouTube API mặc định ~10.000 điểm/ngày. Mỗi lần quét từ khóa hoặc phân tích kênh tốn ~100–120 điểm. Với 2–3 từ khóa/ngày là rất thoải mái.
+## Cài & chạy (Windows)
+1. Giải nén thư mục, nhấp đúp **`run.bat`** (lần đầu tự cài thư viện 1–2 phút; các lần sau chạy ngay).
+2. Trình duyệt tự mở **http://127.0.0.1:5000**. Cửa sổ đen phải để nguyên khi dùng; đóng nó = tắt phần mềm.
+3. Vào tab **⚙️ Cài đặt** → dán key 9router + key YouTube → **Lưu cài đặt**. Hai đèn xanh trên góc phải là xong.
+
+## Quy trình 4 bước (tab "Tiêu đề")
+1. **Phân tích DNA kênh** — dán link kênh đối thủ → rút *khuôn tiêu đề* (độ dài, tử huyệt, giọng điệu, khung xương, **từ khóa chiến thắng của kênh**).
+2. **Quét ảnh thumb** — dán link kênh (khuyên dùng, tự lấy ~20 thumbnail nhiều view) hoặc tải ảnh lên → *DNA thumbnail* (font, bố cục, màu, nhân vật cố định...).
+3. **Quét từ khóa → tái tạo** — nhập từ khóa, chọn mốc thời gian (7 ngày … 3 năm, hoặc Trend 48h), loại video, ngôn ngữ → tool tìm video nhiều view và tạo tiêu đề mới theo khuôn. Từ khóa bạn gõ là **từ khóa chính**: tiêu đề mới luôn chứa nó trong 50 ký tự đầu.
+4. **Tích chọn tiêu đề → "🖼️ Làm thumb cả loạt"** — ra prompt thumbnail cho cả loạt, copy / tải `.txt` hoặc gửi thẳng lên Google Sheet.
+
+Ngoài ra: **Viết lại tiêu đề** (dán tiêu đề hoặc link video bất kỳ, có ô *Từ khóa chính* tùy chọn) và **Lịch sử tiêu đề** (tự lưu, tìm lại được).
+
+💡 Khuôn tiêu đề và DNA thumbnail là 2 kho **độc lập** — bạn có thể lấy tiêu đề theo kênh A và thumbnail theo kênh B cho cùng một ngách.
+
+## Tính năng đáng chú ý
+- **Ép từ khóa**: mỗi tiêu đề mới có dòng 🔑 (từ khóa chính / từ khóa kênh / từ khóa gốc giữ lại) kèm ✅ đủ hoặc ⚠️ thiếu; nút **🔄 Tạo lại** đổi sang khung xương khác.
+- **Nhiều ngôn ngữ**: Việt, English, 中文, 日本語, 한국어, ไทย, Español. Có bản dịch tiếng Việt cho cả tiêu đề gốc lẫn tiêu đề mới.
+- **Google Sheet**: ⚙️ Cài đặt → *Google Sheet* → làm theo hướng dẫn (có sẵn code để bấm Copy). Prompt thumbnail tự điền **nối tiếp xuống cuối bảng**, không ghi đè.
+- **2 model AI**: ⚙️ Cài đặt → *Model Phân tích & Nhìn ảnh* (nên là Gemini) và *Model Sáng tạo* (tiêu đề & prompt). Mặc định đã chọn sẵn.
+- **Cập nhật**: khi có bản mới, chỉ cần **F5** trình duyệt.
+
+## Dữ liệu riêng của bạn (đừng gửi cho người khác)
+`config.json` (chứa key), `profiles.json`, `dna_profiles.json`, `used.json`, `seen.json`, `title_history.json` — tự tạo trong thư mục phần mềm.
+
+## Lưu ý quota YouTube
+Mặc định ~10.000 điểm/ngày. Mỗi lần quét từ khóa, phân tích kênh hoặc quét ảnh thumb từ link kênh tốn ~100–120 điểm (tải ảnh lên thì không tốn). Với vài lượt mỗi ngày là thoải mái.
+
+Xem thêm: `HUONG DAN SU DUNG.txt` (hướng dẫn từng bước + xử lý sự cố).

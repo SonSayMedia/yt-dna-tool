@@ -1,20 +1,26 @@
 {
-  "_huong_dan": "Copy file nay thanh 'config.json' roi dien 2 KEY (llm_api_key + youtube_api_key). KHONG chia se config.json.",
+  "_huong_dan": "Thuong KHONG can sua file nay: chay run.bat roi vao tab Cai dat nhap 2 KEY. Neu muon sua tay: copy thanh 'config.json' roi dien llm_api_key + youtube_api_key. KHONG chia se config.json.",
 
   "llm_base_url": "http://127.0.0.1:20128/v1",
   "llm_api_key": "DAN_KEY_9ROUTER_VAO_DAY",
+
+  "model_analyze": "ag/gemini-3.8-flash-high",
+  "model_create": "ag/gemini-3.8-flash-medium",
   "llm_model": "ag/gemini-3.8-flash-medium",
-  "llm_vision_model": "ag/gemini-3.8-flash-medium",
+  "llm_reasoning": "auto",
 
   "youtube_api_key": "DAN_YOUTUBE_DATA_API_V3_KEY_VAO_DAY",
 
   "_ghi_chu": {
     "llm_base_url": "Endpoint 9router chay local.",
-    "llm_model": "Model cho viec chu. Muc suy luan = duoi ten: -high / -medium / -low. VD: ag/gemini-3.8-flash-high.",
-    "llm_vision_model": "Model co 'mat' (nhin anh de rut DNA). De giong llm_model la duoc (Gemini Flash da co vision).",
+    "model_analyze": "Model PHAN TICH + NHIN ANH (phan tich kenh, quet anh thumb). Nen la Gemini vi can 'mat'.",
+    "model_create": "Model SANG TAO (tieu de, prompt thumbnail). Co the thu claude-sonnet-4-6 de tieu de 'muot' hon.",
+    "llm_model": "Model du phong (tu dong dong bo = model_create khi luu trong tab Cai dat).",
+    "llm_reasoning": "Che do suy luan: auto / minimal / low / medium / high / max / xhigh. De 'auto' la on.",
     "youtube_api_key": "Lay tai https://console.cloud.google.com -> bat 'YouTube Data API v3' -> tao API key.",
     "cac_model_co_san": [
-      "ag/gemini-3.8-flash-high", "ag/gemini-3.8-flash-medium", "ag/gemini-3.8-flash-low", "ag/gemini-3.8-flash"
+      "ag/gemini-3.8-flash-high", "ag/gemini-3.8-flash-medium", "ag/gemini-3.8-flash-low", "ag/gemini-3.8-flash",
+      "ag/claude-sonnet-4-6", "ag/claude-opus-4-6-thinking"
     ]
   }
 }

@@ -58,6 +58,7 @@ def _do_aititles(it):
     with _LK:
         it["prompt"] = r.get("thumbnail_prompt_en", "")
         it["text_tren_thumb"] = r.get("text_tren_thumb", "")
+        it["ngon_ngu"] = r.get("ngon_ngu_tieu_de", "")
         it["chu_the"] = r.get("chu_the_chinh", "")
 
 
@@ -129,7 +130,7 @@ def start(kind, items, folder=None, out_dir=None, motion=True):
             "dna_name": (it.get("dna_name") or "").strip(),
             "state": "pending", "error": "",
             "prompt": "", "best_pos": "", "ly_do": "", "chu_the": "",
-            "text_tren_thumb": "",
+            "text_tren_thumb": "", "ngon_ngu": "",
         })
     if not norm:
         raise RuntimeError("Khong co viec hop le de chay.")

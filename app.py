@@ -70,6 +70,26 @@ def api_analyze_channel():
         return _err(e)
 
 
+def _profile_with_keywords(profile_name):
+    """Tra ve dict khuon (hoac None). Khuon CU chua co 'tu_khoa_chien_thang' thi tu rut 1 lan
+    tu sample_titles roi luu lai (lan sau khong ton them 1 luot goi AI)."""
+    if not profile_name:
+        return None
+    p = store.get_profile(profile_name)
+    if not p:
+        return None
+    prof = p["profile"]
+    if not prof.get("tu_khoa_chien_thang") and p.get("sample_titles"):
+        try:
+            kws = title_dna.extract_channel_keywords(p["sample_titles"])
+            if kws:
+                prof["tu_khoa_chien_thang"] = kws
+                store.save_profile(p["name"], p.get("channel_url", ""), prof, p["sample_titles"])
+        except Exception:
+            pass  # khong rut duoc -> van chay, chi thieu rang buoc tu khoa kenh
+    return prof
+
+
 @app.route("/api/profiles", methods=["GET"])
 def api_profiles():
     return jsonify({"ok": True, "profiles": store.list_profiles()})
@@ -118,8 +138,9 @@ def api_scan():
 
         # Loai trung theo TUNG TU KHOA
         exclude = set()
+        used_all = store.used_ids_for(keyword)   # video da danh dau "Su dung" (de bao so luong dang an + danh dau trong bang)
         if hide_used:
-            exclude |= store.used_ids_for(keyword)
+            exclude |= used_all
         if hide_seen:
             exclude |= store.seen_ids_for(keyword)
 
@@ -142,20 +163,22 @@ def api_scan():
                 note = "Khong tim thay video phu hop (thu doi tu khoa hoac noi rong moc thoi gian)."
             return jsonify({"ok": True, "rows": [], "note": note, "keyword": keyword,
                             "original_keyword": original_keyword, "corrected": corrected_flag,
-                            "market": market_obj, "mode": mode, "window": window})
+                            "market": market_obj, "mode": mode, "window": window,
+                            "used_count": len(used_all), "hide_used": bool(hide_used)})
 
         # Ghi nhan cac video vua hien = "da quet" cho tu khoa nay
         store.seen_add(keyword, [v["id"] for v in videos])
 
-        profile = None
-        if profile_name:
-            p = store.get_profile(profile_name)
-            profile = p["profile"] if p else None
+        profile = _profile_with_keywords(profile_name)
 
-        rows = title_dna.scan_decompose_recreate(videos, profile, output_language)
+        # O Quet tu khoa: tu khoa anh go de quet CHINH LA tu khoa chinh cua tieu de moi
+        rows = title_dna.scan_decompose_recreate(videos, profile, output_language, main_keyword=keyword)
+        for r in rows:
+            r["da_dung"] = r.get("video_id") in used_all   # chi co y nghia khi KHONG an video da dung
         return jsonify({
             "ok": True,
             "rows": rows,
+            "used_count": len(used_all),
             "keyword": keyword,
             "original_keyword": original_keyword,
             "corrected": corrected_flag,
@@ -184,6 +207,7 @@ def api_rewrite_titles():
             raise RuntimeError("Chua nhap tieu de hoac link nao.")
         output_language = data.get("output_language", "vi")
         profile_name = data.get("profile_name") or None
+        main_keyword = (data.get("main_keyword") or "").strip() or None  # None = AI tu chon tung tieu de
 
         # Tach link (lay tieu de goc that) vs tieu de nhap tay
         url_ids = {}
@@ -211,25 +235,21 @@ def api_rewrite_titles():
         if not videos:
             return jsonify({"ok": True, "rows": [], "note": "; ".join(notes) or "Khong co tieu de hop le."})
 
-        profile = None
-        if profile_name:
-            p = store.get_profile(profile_name)
-            profile = p["profile"] if p else None
+        profile = _profile_with_keywords(profile_name)
 
-        rows = title_dna.scan_decompose_recreate(videos, profile, output_language)
+        rows = title_dna.scan_decompose_recreate(videos, profile, output_language, main_keyword=main_keyword)
 
         # Tu luu vao LICH SU viet lai (that bai khong lam sap viec chinh)
         try:
             hist = []
             for r in rows:
-                idx = r.get("index", 0)
-                tg = videos[idx]["title"] if isinstance(idx, int) and 0 <= idx < len(videos) else ""
                 if not r.get("tieu_de_tai_tao"):
                     continue
                 hist.append({
                     "khuon_name": profile_name or "",
                     "lang": output_language,
-                    "title_goc": tg,
+                    "title_goc": r.get("title_goc", ""),
+                    "tu_khoa_chinh": r.get("tu_khoa_chinh", ""),
                     "tieu_de_tai_tao": r.get("tieu_de_tai_tao", ""),
                     "dich_viet": r.get("dich_viet", ""),
                     "so_ky_tu": r.get("so_ky_tu", 0),
@@ -281,11 +301,9 @@ def api_recreate_one():
         except (TypeError, ValueError):
             khung_index = -1
         profile_name = data.get("profile_name") or None
-        profile = None
-        if profile_name:
-            p = store.get_profile(profile_name)
-            profile = p["profile"] if p else None
-        out = title_dna.recreate_one(title_goc, profile, output_language, khung_index)
+        profile = _profile_with_keywords(profile_name)
+        main_keyword = (data.get("main_keyword") or "").strip() or None
+        out = title_dna.recreate_one(title_goc, profile, output_language, khung_index, main_keyword=main_keyword)
         return jsonify({"ok": True, **out})
     except Exception as e:  # noqa
         return _err(e)
@@ -388,19 +406,17 @@ def api_video_dna():
         dna_type = (data.get("type") or "ai").strip()
         if not name:
             raise RuntimeError("Hay dat ten cho du an.")
-        if dna_type == "ban_content":
-            thumbs, frames, title = media.thumbnails_only_from_url(url)
-        else:
-            n = int(data.get("frames", 10))
-            thumbs, frames, title = media.dna_inputs_from_url(url, n_frames=n)
-        if not thumbs and not frames:
+        # CHI lay THUMBNAIL (khong tai video, khong cat khung): DNA "anh noi dung" khong con duoc dung
+        # (da bo SRT->prompt) nen bo di cho nhanh (~3s thay vi ~46s) va khoi can ffmpeg/yt-dlp.
+        thumbs, frames, title = media.thumbnails_only_from_url(url)
+        if not thumbs:
             raise RuntimeError("Khong lay duoc anh nao tu link nay.")
         dna = image_dna.analyze_images(thumbs, frames)
         store.save_dna(name, dna, dna_type=dna_type)
         return jsonify({
             "ok": True, "name": name, "dna": dna, "type": dna_type,
             "video_title": title, "frames_count": len(frames),
-            "has_thumbnail": bool(thumbs),
+            "thumbs_count": len(thumbs), "has_thumbnail": bool(thumbs),
         })
     except Exception as e:  # noqa
         return _err(e)

@@ -275,6 +275,42 @@ def _richness_hint_block(thumbnail_dna):
     return "\n".join(parts)
 
 
+def _script_flags(text):
+    """Cac he chu KHONG-Latin co mat trong text (cyrillic/cjk/hangul/thai/arabic/devanagari/greek)."""
+    flags = set()
+    for ch in text or "":
+        o = ord(ch)
+        if 0x0400 <= o <= 0x04FF:
+            flags.add("cyrillic")
+        elif 0x3040 <= o <= 0x30FF or 0x4E00 <= o <= 0x9FFF:
+            flags.add("cjk")
+        elif 0xAC00 <= o <= 0xD7AF or 0x1100 <= o <= 0x11FF:
+            flags.add("hangul")
+        elif 0x0E00 <= o <= 0x0E7F:
+            flags.add("thai")
+        elif 0x0600 <= o <= 0x06FF:
+            flags.add("arabic")
+        elif 0x0900 <= o <= 0x097F:
+            flags.add("devanagari")
+        elif 0x0370 <= o <= 0x03FF:
+            flags.add("greek")
+    return flags
+
+
+def _hook_matches_title_script(title, hook):
+    """Tieu de dung chu khong-Latin (Nga/Nhat/Han/Thai...) thi HOOK cung phai co chu do.
+    Tieu de chu Latin (es/en/vi/pt/fr...) khong kiem duoc bang ky tu -> tin vao model."""
+    ts = _script_flags(title)
+    if not ts or not hook:
+        return True
+    return bool(ts & _script_flags(hook))
+
+
+def _hook_lang_retry_note(title):
+    return ("\nLUU Y QUAN TRONG: lan truoc chu HOOK SAI ngon ngu. HOOK PHAI viet bang CHINH NGON NGU va BANG CHU CAI "
+            "cua tieu de ('" + title + "'), TUYET DOI KHONG dich sang tieng Anh.")
+
+
 def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richness_hint=""):
     """DNA co 'khoa_bo_cuc_en' (template bo cuc CO DINH + placeholder [[X]]) ->
     dien MOI o trong theo tieu de (linh hoat, khong cung so o). [[FONT]] = khoa chu.
@@ -293,14 +329,18 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         return {"phan_tich_tieu_de": "", "chu_the_chinh": "", "boi_canh_de_xuat": "",
                 "text_tren_thumb": "", "thumbnail_prompt_en": p,
                 "khoa_chu_en": font_lock, "khoa_nhan_vat_en": char_lock, "khoa_bo_cuc": True}
-    slot_lines = "\n".join(
-        '  "%s": "gia tri TIENG ANH, hop tieu de%s",' % (
-            s, " - cum 2-4 tu IN HOA, BO TRO tieu de (tao khoang trong to mo RIENG), "
-               "TUYET DOI KHONG lap lai nguyen tu/cum tu da co san trong tieu de"
-            if s.upper() == "HOOK"
-            else " - MO TA CU THE, khong dung tinh tu chung chung" if s.upper() == "EMOTION"
-            else "")
-        for s in slots)
+    def _slot_line(s):
+        u = s.upper()
+        if u == "HOOK":  # chu TREN THUMB: cung ngon ngu voi tieu de (KHONG ep tieng Anh)
+            return ('  "%s": "cum 2-4 tu IN HOA viet bang NGON NGU CUA TIEU DE (dung ngon ngu o truong ngon_ngu_tieu_de, '
+                    'KHONG dich sang tieng Anh), BO TRO tieu de (tao khoang trong to mo RIENG), '
+                    'TUYET DOI KHONG lap lai nguyen tu/cum tu da co san trong tieu de",' % s)
+        extra = " - MO TA CU THE, khong dung tinh tu chung chung" if u == "EMOTION" else ""
+        return '  "%s": "gia tri TIENG ANH, hop tieu de%s",' % (s, extra)
+
+    slot_lines = ('  "ngon_ngu_tieu_de": "ten ngon ngu cua TIEU DE (vd Spanish, English, Vietnamese, Japanese)",\n'
+                  + "\n".join(_slot_line(s) for s in slots))
+    hook_key = next((s for s in slots if s.upper() == "HOOK"), None)
     system = (
         "Ban la giam doc nghe thuat thumbnail YouTube trieu view. "
         "BO CUC, TY LE, MAU va FONT da KHOA CUNG (khong duoc doi). Viec cua ban: doc TIEU DE "
@@ -327,9 +367,11 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         '  "chu_the_chinh": "chu the + bieu tuong (TIENG VIET)",\n'
         '  "boi_canh_de_xuat": "y nghia hinh anh theo tieu de (TIENG VIET)"\n'
         "}\n"
-        "Cac o trong viet TIENG ANH; 3 field cuoi viet TIENG VIET CO DAU."
+        "Cac o trong viet TIENG ANH, RIENG o HOOK viet bang ngon ngu cua TIEU DE; 3 field cuoi viet TIENG VIET CO DAU."
     )
     r = llm.chat_json(system, user, temperature=0.6)
+    if hook_key and not _hook_matches_title_script(title, str(r.get(hook_key) or "")):
+        r = llm.chat_json(system, user + _hook_lang_retry_note(title), temperature=0.6)
     p = comp_lock
     hook = ""
     for s in slots:
@@ -345,6 +387,7 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         "chu_the_chinh": r.get("chu_the_chinh", ""),
         "boi_canh_de_xuat": r.get("boi_canh_de_xuat", ""),
         "text_tren_thumb": hook,
+        "ngon_ngu_tieu_de": str(r.get("ngon_ngu_tieu_de") or "").strip(),
         "thumbnail_prompt_en": p,
         "khoa_chu_en": font_lock,
         "khoa_nhan_vat_en": char_lock,
@@ -383,6 +426,7 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna):
            "nhan vat do sao cho hop tieu de.\n" if char_lock else "")
         + "Hay SUY NGHI KY nhu 1 chuyen gia: boc tach tieu de -> chon PHUONG AN chu the + boi canh MANH NHAT "
         "(hut click, dung tam ly nguoi xem, hop chu de) -> viet 1 CUM HOOK 2-4 tu IN HOA sac ben, "
+        "bang NGON NGU CUA TIEU DE (khong dich sang tieng Anh), "
         "bo tro (khong lap y het) tieu de.\n"
         + CAST_ACTION_GRAMMAR + "\n"
         + "BIEU CAM: neu DNA co 'nhan_vat_dna.cong_thuc_bieu_cam', BAT BUOC dung dung CONG THUC do (mo ta CU THE "
@@ -394,11 +438,14 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna):
         + ("Kenh NAY CO dat chu.\n" if co_chu
            else "Kenh nay KHONG dat chu -> chua khoang trong sach, KHONG dung [[FONT]].\n")
     )
-    hook_line = ('  "text_tren_thumb": "cum HOOK 2-4 tu IN HOA suy ra tu tieu de",\n'
+    hook_line = ('  "ngon_ngu_tieu_de": "ten ngon ngu cua TIEU DE (vd Spanish, English, Vietnamese, Japanese)",\n'
+                 '  "text_tren_thumb": "cum HOOK 2-4 tu IN HOA suy ra tu tieu de, viet bang NGON NGU CUA TIEU DE '
+                 '(khong dich sang tieng Anh)",\n'
                  if co_chu else '  "text_tren_thumb": "",\n')
     prompt_hint = (
         'prompt TIENG ANH: chu the + boi canh (theo tieu de) + bang mau/anh sang/bo cuc/ty le %/vi tri theo DNA. '
-        'Cho chu: viet chinh xac the title text \\"<HOOK>\\" [[FONT]] (GIU NGUYEN chuoi [[FONT]], KHONG tu ta font).'
+        'Cho chu: viet chinh xac the title text \\"[[HOOK]]\\" [[FONT]] (GIU NGUYEN 2 chuoi [[HOOK]] va [[FONT]], '
+        'KHONG tu ta font, KHONG tu viet hook vao prompt).'
         if co_chu else
         'prompt TIENG ANH: chu the + boi canh (theo tieu de) + bang mau/anh sang/bo cuc/ty le %/vi tri theo DNA. '
         'Chua khoang trong sach cho chu, KHONG them chu.'
@@ -415,18 +462,22 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna):
         + hook_line +
         '  "thumbnail_prompt_en": "' + prompt_hint + '"\n'
         "}\n"
-        "phan_tich_tieu_de, chu_the_chinh, boi_canh_de_xuat, text_tren_thumb viet TIENG VIET CO DAU. "
+        "phan_tich_tieu_de, chu_the_chinh, boi_canh_de_xuat viet TIENG VIET CO DAU. "
+        "text_tren_thumb viet bang NGON NGU CUA TIEU DE. "
         "thumbnail_prompt_en viet TIENG ANH."
     )
     result = llm.chat_json(system, user, temperature=0.6)
+    if co_chu and not _hook_matches_title_script(title, str(result.get("text_tren_thumb") or "")):
+        result = llm.chat_json(system, user + _hook_lang_retry_note(title), temperature=0.6)
 
     # CHEN khoi chu KHOA CUNG y nguyen -> chu giong het moi lan (khong phu thuoc model che lai)
     p = result.get("thumbnail_prompt_en", "") or ""
+    hook = (result.get("text_tren_thumb") or "").strip()
     if co_chu:
+        p = p.replace("[[HOOK]]", hook)  # hook dung ngon ngu tieu de, do Python chen (khong de model tu dich)
         if "[[FONT]]" in p:
             p = p.replace("[[FONT]]", font_lock)
         else:
-            hook = (result.get("text_tren_thumb") or "").strip()
             p = (p + ' The title text "' + hook + '" ' + font_lock + ".") if hook else (p + " " + font_lock + ".")
     else:
         p = p.replace("[[FONT]]", "").strip()

@@ -1,87 +1,143 @@
 ========================================================
-        YT DNA TOOL  —  HƯỚNG DẪN VẬN HÀNH
+        YT DNA TOOL  —  HƯỚNG DẪN SỬ DỤNG
 ========================================================
 
-Phần mềm chạy trên máy anh (localhost). Gồm 4 chức năng:
-  ① Phân tích kênh   → rút "khuôn tiêu đề" của kênh đối thủ (Title DNA)
-  ② Quét từ khóa     → tìm video nhiều view + tái tạo tiêu đề theo khuôn
-  ③ Phân tích ảnh    → rút "DNA phong cách" ảnh (thumbnail + ảnh nội dung)
-  ④ SRT → prompt     → từ file phụ đề, sinh prompt thumbnail + prompt ảnh
+Phần mềm chạy ngay trên máy của bạn (localhost). Làm 2 việc chính:
+  • VIẾT LẠI TIÊU ĐỀ  theo "khuôn" của kênh thành công (có từ khóa chính, có bản dịch)
+  • TẠO PROMPT THUMBNAIL  đồng nhất phong cách kênh (khóa font, bố cục, nhân vật;
+    chữ trên thumbnail cùng ngôn ngữ với tiêu đề) để dán vào Google Flow / ChatGPT / Gemini
 
 
 --------------------------------------------------------
-A. CHẠY PHẦN MỀM (1 cú nhấp)
+A. CHUẨN BỊ (chỉ làm 1 lần)
 --------------------------------------------------------
-1. Nhấp đúp vào  run.bat  (hoặc shortcut "YT DNA Tool" ngoài Desktop).
-2. Lần đầu sẽ cài đặt tự động 1–2 phút (các lần sau chạy ngay).
-3. Trình duyệt TỰ MỞ trang:  http://127.0.0.1:5000
-4. Muốn TẮT phần mềm: đóng cửa sổ đen (Command Prompt) đang chạy.
+1. Cài Python 3.10 trở lên: https://www.python.org/downloads/
+   → Khi cài, NHỚ TICK ô "Add Python to PATH".
+2. Có 9router đang chạy trên máy (cổng AI Gemini), địa chỉ mặc định
+   http://127.0.0.1:20128/v1  và 1 KEY 9router.
+3. Có 1 KEY YouTube Data API v3 (dạng AIza...):
+   console.cloud.google.com → bật "YouTube Data API v3" → tạo API key.
 
-Lưu ý: cửa sổ đen phải để nguyên trong lúc dùng. Đóng nó = tắt phần mềm.
-
-
---------------------------------------------------------
-B. NHẬP KEY (chỉ làm 1 lần)
---------------------------------------------------------
-Trên trang web, ở mục "⚙️ Cài đặt":
-  1. Dán KEY 9router vào ô "Key 9router".
-  2. Dán KEY YouTube (YouTube Data API v3) vào ô "YouTube API key".
-  3. Chọn mức suy luận của model nếu muốn (mặc định: Medium).
-  4. Bấm "Lưu cài đặt".
-Khi thấy "9router ✅ · YouTube ✅" là xong, dùng được mọi chức năng.
-
-(Key chỉ lưu trong máy anh, ở file config.json — không gửi đi đâu.)
+(Không cần cài ffmpeg hay yt-dlp.)
 
 
 --------------------------------------------------------
-C. QUY TRÌNH DÙNG (gợi ý theo thứ tự)
+B. CHẠY PHẦN MỀM
+--------------------------------------------------------
+1. Nhấp đúp  run.bat  (lần đầu tự cài đặt 1–2 phút, các lần sau chạy ngay).
+2. Trình duyệt TỰ MỞ trang:  http://127.0.0.1:5000
+3. Cửa sổ đen phải để nguyên trong lúc dùng. Đóng nó = tắt phần mềm.
+4. Có bản cập nhật mới: chỉ cần nhấn F5 trong trình duyệt.
+
+
+--------------------------------------------------------
+C. NHẬP KEY (chỉ làm 1 lần)
+--------------------------------------------------------
+Tab "⚙️ Cài đặt" → mục "API & Model":
+  1. Dán KEY 9router.   2. Dán KEY YouTube.   3. Bấm "Lưu cài đặt".
+Khi 2 đèn ở góc phải màn hình đều XANH ("9router tốt · YouTube tốt") là dùng được.
+
+Hai ô chọn model (đã chọn sẵn, không cần đổi):
+  • Model Phân tích & Nhìn ảnh  → nên để Gemini (cần "nhìn" được ảnh).
+  • Model Sáng tạo               → viết tiêu đề + prompt. Muốn tiêu đề "mượt" hơn có thể thử Claude Sonnet.
+  • Suy luận (Thinking): để Auto.
+(Key chỉ lưu trong máy bạn, ở file config.json — không gửi đi đâu.)
+
+
+--------------------------------------------------------
+D. QUY TRÌNH 4 BƯỚC  (tab "Tiêu đề", menu bên trái)
 --------------------------------------------------------
 
-① PHÂN TÍCH KÊNH (làm trước để có "khuôn tiêu đề")
-   - Dán link kênh đối thủ (kênh muốn học theo).
-   - Đặt tên khuôn (vd: "Kenh tam ly A").
-   - Bấm "Phân tích 20 video top view" → phần mềm lưu lại khuôn.
+BƯỚC 1 — PHÂN TÍCH DNA KÊNH   (làm 1 lần cho mỗi kênh muốn học theo)
+   - Dán link kênh đối thủ, đặt tên cho khuôn (vd: "Kênh tâm lý A").
+   - Bấm "Phân tích 20 video top view".
+   - Tool lưu "khuôn tiêu đề": độ dài, tử huyệt, giọng điệu, khung xương
+     và các TỪ KHÓA CHIẾN THẮNG của kênh đó.
 
-② QUÉT TỪ KHÓA → TÁI TẠO TIÊU ĐỀ
-   - Nhập từ khóa (gõ ngôn ngữ nào, quét thị trường đó).
-   - Chọn chế độ:
-        • "Thường"  → chọn mốc thời gian (3 tháng … 3 năm).
-        • "Trend 48h" → chỉ video mới đăng trong 48 giờ qua.
-   - Nhập số video, chọn ngôn ngữ tiêu đề tái tạo, chọn "Khuôn kênh" (ở bước ①).
+BƯỚC 2 — QUÉT ẢNH THUMB   (làm 1 lần cho mỗi phong cách thumbnail)
+   - Đặt tên dự án.
+   - Cách 1 (khuyên dùng): dán LINK KÊNH → tool tự lấy ~20 thumbnail nhiều view nhất.
+     Cách 2: tải ảnh thumbnail mẫu lên.
+   - Tool lưu "DNA thumbnail": KHÓA font chữ, KHÓA bố cục, KHÓA nhân vật (nếu kênh có
+     nhân vật cố định), bảng màu...  → mọi thumbnail sau này giống hệt nhau về phong cách.
+
+BƯỚC 3 — QUÉT TỪ KHÓA → TÁI TẠO TIÊU ĐỀ
+   - Nhập TỪ KHÓA. Đây là TỪ KHÓA CHÍNH: tiêu đề mới luôn chứa nó trong 50 ký tự đầu.
+   - Chọn loại video (dài / short / cả hai), mốc thời gian (7 ngày … 3 năm)
+     hoặc chế độ "Trend 48h", số video, ngôn ngữ tiêu đề mới, và khuôn ở "Dự án áp dụng".
    - Bấm "Quét & tái tạo".
-   - Kết quả: bảng xếp theo view, bóc tách 3 thành phần, và tiêu đề tái tạo.
+   - Mỗi dòng cho: tiêu đề gốc (kèm bản dịch), bóc tách, TIÊU ĐỀ MỚI (kèm bản dịch và
+     dòng 🔑 từ khóa: ✅ đủ từ khóa / ⚠️ thiếu → bấm "Tạo lại").
+   - Nút "Tạo lại": đổi sang khung xương khác của kênh.
+   - Nút "Sử dụng": đánh dấu video đã làm (lần quét sau mặc định ẩn). Bấm lại để BỎ đánh dấu.
 
-③ PHÂN TÍCH ẢNH → DNA PHONG CÁCH   (2 cách)
-   - Cách 1: đặt tên hồ sơ DNA + tải lên vài ảnh thumbnail và ảnh nội dung.
-   - Cách 2: đặt tên hồ sơ DNA + dán LINK VIDEO → phần mềm tự tải bản nhẹ,
-             cắt khung hình, lấy thumbnail rồi phân tích.
-   - Bấm nút tương ứng → phần mềm lưu "DNA phong cách" để dùng ở bước ④.
+BƯỚC 4 — TẠO PROMPT THUMBNAIL
+   - Ở bảng kết quả, TÍCH CHỌN những tiêu đề ưng ý (hoặc "Chọn tất cả").
+   - Bấm "🖼️ Làm thumb cả loạt" → tool nhảy sang mục "Tiêu đề → Prompt Thumbnail".
+   - Chọn DNA thumbnail ở ô "Dùng dự án nào?" rồi bấm "Sinh prompt hàng loạt".
+   - Nhận prompt tiếng Anh theo đúng thứ tự tiêu đề. Chữ trên thumbnail viết CÙNG
+     NGÔN NGỮ với tiêu đề (vd tiêu đề tiếng Tây Ban Nha → chữ tiếng Tây Ban Nha).
+   - Bấm "Copy tất cả" / "Tải .txt" / "Gửi lên Google Sheet" → dán prompt vào
+     Google Flow (hoặc ChatGPT / Gemini) để ra ảnh.
+   - Làm 1 tiêu đề lẻ: chọn "Tạo đơn" ở đầu trang.
 
-④ SRT → BỘ PROMPT
-   - Chọn file .srt (TÊN FILE = tiêu đề video).
-   - Chọn "DNA phong cách" (ở bước ③) và kiểu prompt (Veo có chuyển động / ảnh tĩnh).
-   - Bấm "Sinh bộ prompt".
-   - Nhận: 1 prompt thumbnail (hiện trên màn hình) + bảng prompt từng cảnh.
-   - Bấm "⬇ Tải bộ prompt ảnh (.txt)" để lưu file prompt (đánh số) mang đi tạo ảnh
-     trên Google Flow. Prompt viết bằng TIẾNG ANH.
-
-
---------------------------------------------------------
-D. XỬ LÝ SỰ CỐ THƯỜNG GẶP
---------------------------------------------------------
-• "Chức năng báo lỗi thiếu key": vào ⚙️ Cài đặt dán lại key, bấm Lưu.
-• Trình duyệt không tự mở: gõ tay vào trình duyệt  http://127.0.0.1:5000
-• Chạy lại mà báo lỗi cổng bận: phần mềm đang chạy sẵn — nó chỉ mở lại trình duyệt.
-  Muốn khởi động lại thì đóng cửa sổ đen cũ rồi nhấp run.bat lại.
-• Quét không ra kết quả: đổi từ khóa / nới mốc thời gian / kiểm tra key YouTube.
-• Muốn tiêu đề "chất" hơn: ⚙️ Cài đặt → đổi model sang "High" → Lưu.
+💡 MẸO: "khuôn tiêu đề" (Bước 1) và "DNA thumbnail" (Bước 2) là 2 kho ĐỘC LẬP.
+   Bạn có thể lấy tiêu đề theo kênh A và thumbnail theo kênh B cho cùng 1 ngách.
 
 
 --------------------------------------------------------
-E. GHI CHÚ
+E. CÁC MỤC KHÁC
 --------------------------------------------------------
-• YouTube API mặc định ~10.000 điểm/ngày; mỗi lần quét/phân tích kênh tốn ~100–120 điểm.
-  Với 2–3 từ khóa/ngày là rất thoải mái.
-• Không chia sẻ file config.json cho ai (chứa key).
-• Thư mục phần mềm: C:\Users\SON SAY\Documents\Claude\yt-dna-tool
+• VIẾT LẠI TIÊU ĐỀ (tab Tiêu đề): dán tiêu đề hoặc link video YouTube (mỗi dòng 1 cái) →
+  chọn khuôn + ngôn ngữ → "Viết lại theo DNA". Có ô "Từ khóa chính" (tùy chọn): để trống
+  thì tool tự chọn từ khóa cho từng tiêu đề.
+• LỊCH SỬ TIÊU ĐỀ: mọi tiêu đề đã viết lại được lưu tự động, có ô tìm kiếm, copy, xóa.
+• THƯ VIỆN: nơi xem / dùng / xóa các "Khuôn tiêu đề" và "DNA ảnh thumb" đã lưu.
+
+
+--------------------------------------------------------
+F. NỐI VỚI GOOGLE SHEET (tùy chọn)
+--------------------------------------------------------
+Mục đích: bấm một nút là tiêu đề + prompt thumbnail tự điền vào bảng kế hoạch của bạn,
+mỗi lần điền NỐI TIẾP xuống cuối bảng (không ghi đè).
+Cột sẽ điền:  STT | Tiêu đề (tiếng gốc) | Tiêu đề tiếng Việt | Link video | Prompt thumb
+
+Làm 1 lần (khoảng 2 phút):
+  1. Tab "⚙️ Cài đặt" → mục "Google Sheet" → mở "Cách tạo cổng" → bấm "📋 Copy code".
+  2. Mở Google Sheet → "Tiện ích mở rộng" (Extensions) → "Apps Script".
+  3. Xóa code mẫu, DÁN code vừa copy → bấm lưu.
+  4. "Triển khai" (Deploy) → "Bản triển khai mới" → loại "Ứng dụng web":
+        • Thực thi với tư cách: Tôi
+        • Người có quyền truy cập: BẤT KỲ AI (Anyone)   ← QUAN TRỌNG
+     → Triển khai → "Cho phép": nếu Google báo "chưa xác minh" thì bấm Nâng cao →
+        Đi tới (không an toàn) → Cho phép. (An toàn vì là script của chính bạn.)
+  5. Copy "URL ứng dụng web" (đuôi /exec) → dán vào ô trong tool → "Lưu link"
+     → bấm "Gửi thử 1 dòng" để kiểm tra.
+  6. (Tùy chọn) Tick "Tự động gửi sau khi làm thumb" để khỏi bấm nút.
+
+Lưu ý: đừng chèn dòng trống/ghi chú ngay dưới bảng dữ liệu (STT lấy từ dòng cuối).
+
+
+--------------------------------------------------------
+G. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+--------------------------------------------------------
+• Đèn 9router đỏ / "Không kết nối được 9router": mở app 9router trước, kiểm tra địa chỉ
+  http://127.0.0.1:20128/v1 và key, rồi bấm "Kiểm tra kết nối API" trong Cài đặt.
+• Đèn YouTube đỏ: key sai hoặc hết quota hôm nay (thử lại ngày mai).
+• Google Sheet báo lỗi 401: cổng chưa mở cho "Bất kỳ ai" — làm lại bước 4 mục F.
+• Trình duyệt không tự mở: gõ tay  http://127.0.0.1:5000
+• Báo cổng bận: phần mềm đang chạy sẵn — đóng cửa sổ đen cũ rồi nhấp run.bat lại.
+• Quét không ra kết quả: đổi từ khóa / nới mốc thời gian / thử "Cả hai" loại video.
+• Tiêu đề chưa đủ từ khóa (⚠️): bấm "Tạo lại".
+• Chữ trên thumbnail tiếng Trung/Nhật/Hàn/Thái: font khóa kiểu Georgia không có các chữ này,
+  nên công cụ vẽ ảnh sẽ tự chọn font gần nhất (chưa đồng nhất tuyệt đối).
+
+
+--------------------------------------------------------
+H. GHI CHÚ
+--------------------------------------------------------
+• YouTube API mặc định ~10.000 điểm/ngày. Quét từ khóa, phân tích kênh, quét ảnh thumb từ
+  link kênh: mỗi lần ~100–120 điểm. Vài lượt mỗi ngày là thoải mái.
+• KHÔNG gửi cho ai các file riêng của bạn: config.json (chứa key), profiles.json,
+  dna_profiles.json, used.json, seen.json, title_history.json.
 ========================================================

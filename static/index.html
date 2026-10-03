@@ -135,7 +135,7 @@
       </div>
       <div class="subview" data-order="3" data-name="Quét từ khóa → tái tạo" data-ic="🔎">
       <div class="card">
-        <h3><span class="step">Bước 2</span> Quét từ khóa → tái tạo tiêu đề</h3>
+        <h3><span class="step">Bước 3</span> Quét từ khóa → tái tạo tiêu đề</h3>
         <div class="row">
           <div style="position:relative"><label>Từ khóa</label>
             <input id="kw" placeholder="VD: thao túng tâm lý" autocomplete="off">
@@ -153,7 +153,7 @@
             </select></div>
           <div id="wWrap"><label>Mốc thời gian</label>
             <select id="window">
-              <option value="1m">1 tháng</option><option value="3m">3 tháng</option><option value="6m">6 tháng</option>
+              <option value="7d">7 ngày</option><option value="1m">1 tháng</option><option value="3m">3 tháng</option><option value="6m">6 tháng</option>
               <option value="1y" selected>1 năm</option><option value="2y">2 năm</option><option value="3y">3 năm</option>
             </select></div>
           <div><label>Số video</label><input id="count" type="number" value="10" min="1" max="50" style="min-width:80px"></div>
@@ -161,7 +161,7 @@
             <select id="outLang">
               <option value="vi">Tiếng Việt</option><option value="en">English</option>
               <option value="zh">中文</option><option value="ja">日本語</option>
-              <option value="ko">한국어</option><option value="th">ไทย</option>
+              <option value="ko">한국어</option><option value="th">ไทย</option><option value="es">Español</option>
             </select></div>
           <div><label>Dự án áp dụng</label><select id="profileSel"><option value="">(công thức chung)</option></select></div>
           <button id="btnScan">Quét & tái tạo</button>
@@ -189,8 +189,10 @@
             <select id="rwLang">
               <option value="vi">Tiếng Việt</option><option value="en">English</option>
               <option value="zh">中文</option><option value="ja">日本語</option>
-              <option value="ko">한국어</option><option value="th">ไทย</option>
+              <option value="ko">한국어</option><option value="th">ไทย</option><option value="es">Español</option>
             </select></div>
+          <div style="flex:1;min-width:240px"><label>Từ khóa chính <span class="muted" style="font-weight:400">(tùy chọn — để trống = tự chọn)</span></label>
+            <input id="rwKeyword" style="width:100%" placeholder="VD: Ancient Humans"></div>
           <button id="btnRewrite">✍️ Viết lại theo DNA</button>
         </div>
         <label style="display:block;margin-top:8px">Tiêu đề / link YouTube — mỗi dòng 1 cái</label>
@@ -211,18 +213,16 @@
       </div>
       <div class="subview" data-order="2" data-name="Quét ảnh thumb" data-ic="🖼️">
       <div class="card">
-        <h3><span class="step">Bước 1</span> Tạo hồ sơ DNA phong cách</h3>
-        <p class="muted" style="margin-top:0">Đưa ảnh/link vào → phân tích → <b>đặt tên & lưu</b>. Kết quả vào Thư viện và tự chọn sẵn cho Bước 2. (Chỉ cần làm 1 lần cho mỗi phong cách.)</p>
+        <h3><span class="step">Bước 2</span> Quét ảnh thumb → tạo DNA thumbnail</h3>
+        <p class="muted" style="margin-top:0">Đưa ảnh/link kênh vào → phân tích → <b>đặt tên & lưu</b>. Kết quả vào Thư viện và dùng được ở Bước 4 (Tiêu đề → Prompt Thumbnail). (Chỉ cần làm 1 lần cho mỗi phong cách.)</p>
         <div class="row">
           <div><label>① Ảnh THUMBNAIL mẫu</label><input id="dnaThumbs" type="file" accept="image/*" multiple></div>
-          <div><label>① Ảnh NỘI DUNG mẫu</label><input id="dnaContents" type="file" accept="image/*" multiple></div>
           <div><label>② Dự án (chọn dự án đã có hoặc nhập mới)</label><input id="dnaName" placeholder="Chọn/nhập tên dự án" list="projList"></div>
           <button id="btnDna">③ Phân tích &amp; Lưu DNA</button>
         </div>
         <div class="row" style="margin-top:6px;border-top:1px dashed var(--line);padding-top:12px">
-          <div style="flex:1"><label>…hoặc DÁN LINK KÊNH hoặc VIDEO (tự phân tích thumbnail + khung hình) — nhớ chọn/nhập dự án ở ô ②</label>
-            <input id="dnaVideoUrl" style="width:100%" placeholder="Link kênh (@ten) hoặc link video (watch?v=...)"></div>
-          <div><label>Số khung</label><input id="dnaFrames" type="number" value="10" min="4" max="16" style="min-width:80px"></div>
+          <div style="flex:1"><label>…hoặc DÁN LINK KÊNH (tool tự lấy ~20 thumbnail nhiều view nhất để phân tích) — nhớ chọn/nhập dự án ở ô ②</label>
+            <input id="dnaVideoUrl" style="width:100%" placeholder="Link kênh (@ten) — khuyên dùng. Link 1 video (watch?v=...) chỉ cho 1 thumbnail"></div>
           <button id="btnDnaVideo">Phân tích link &amp; Lưu DNA</button>
         </div>
         <div id="dnaOut"></div>
@@ -235,7 +235,7 @@
         </div>
         <div id="aithumb-single">
           <div class="card">
-            <h3>🖼️ Tiêu đề → prompt thumbnail (theo DNA, không cần SRT)</h3>
+            <h3><span class="step">Bước 4</span> Tiêu đề → prompt thumbnail (theo DNA)</h3>
             <p class="muted" style="margin-top:0">Chọn dự án đã có DNA + nhập tiêu đề bất kỳ → ra <b>1 prompt thumbnail</b> đúng phong cách kênh (bám <b>font/màu chữ trong DNA</b> + hook ngắn). Dùng cho Google Flow / ChatGPT.</p>
             <div class="row">
               <div><label>Dùng dự án nào? (đã có DNA)</label>
@@ -470,12 +470,14 @@ function khuonStructHtml(p, name, saved){
   if(!p) return '';
   let pills='';(p.tu_huyet_chu_dao||[]).forEach(x=>pills+='<span class="pill">'+esc(x)+'</span>');
   let sk='';(p.khung_xuong_tieu_de||[]).forEach(x=>sk+='<li>'+esc(x)+'</li>');
+  let kwPills='';(p.tu_khoa_chien_thang||[]).forEach(x=>kwPills+='<span class="pill">'+esc(x)+'</span> ');
   const head = saved ? ('✅ Đã lưu khuôn: <b>'+esc(name||'')+'</b>')
                      : ('🧬 Cấu trúc tiêu đề của khuôn đang áp dụng: <b>'+esc(name||'')+'</b>');
   return '<div class="card" style="background:#141a21;margin-top:12px">'+
     '<p style="margin:0 0 6px">'+head+'</p>'+
     '<p class="muted" style="margin:0 0 6px">Độ dài TB: <b>'+esc(String(p.do_dai_trung_binh||''))+'</b> ký tự · Vị trí từ khóa: '+esc(p.vi_tri_tu_khoa||'')+'</p>'+
     '<p style="margin:0 0 6px">Tử huyệt chủ đạo: '+pills+'</p>'+
+    (kwPills?('<p style="margin:0 0 6px">🔑 Từ khóa chiến thắng của kênh: '+kwPills+'</p>'):'')+
     '<p class="muted" style="margin:0 0 6px">Giọng điệu: '+esc(p.giong_dieu||'')+'</p>'+
     '<p class="muted" style="margin:0 0 2px">Khung xương tiêu đề:</p><ul style="margin:4px 0">'+sk+'</ul></div>';
 }
@@ -504,6 +506,15 @@ function ttCopy(btn){
 }
 // Dung chung cho ca Quet & Viet lai: N phien ban (moi khung xuong 1 ban), moi ban co o tich + sua + copy
 // 1 tieu de tai tao (ban HAY NHAT) + nhan "Khung x/N" + nut 🔄 Tao lai (xoay vong khung khac)
+// Dong "🔑 tu khoa" duoi tieu de tai tao: tu khoa chinh + tu khoa kenh + tu khoa len view + dau ✅/⚠️
+function kwLineHtml(row){
+  if(!row || (!row.tu_khoa_chinh && row.kw_ok==null)) return '';
+  const badge = row.kw_ok===true ? '<span style="color:#8fd6a0">✅ đủ từ khóa</span>'
+    : (row.kw_ok===false ? '<span style="color:#ffb454" title="Tiêu đề chưa chứa từ khóa chính trong 50 ký tự đầu hoặc thiếu từ khóa của kênh. Bấm Tạo lại.">⚠️ thiếu từ khóa — bấm Tạo lại</span>' : '');
+  return '🔑 <b>'+esc(row.tu_khoa_chinh||'')+'</b>'+
+    (row.tu_khoa_kenh?(' · kênh: '+esc(row.tu_khoa_kenh)):'')+
+    (row.tu_khoa_len_view?(' · giữ từ gốc: '+esc(row.tu_khoa_len_view)):'')+' '+badge;
+}
 function titleCellHtml(row, opts){
   opts=opts||{};
   const scope=opts.scope||'#scanOut';
@@ -516,10 +527,11 @@ function titleCellHtml(row, opts){
     '<label class="optlabel" style="gap:6px;margin-bottom:3px"><input type="checkbox" class="chk selrow"> <span class="khunglbl">'+label+'</span></label>'+
     '<textarea class="ttedit" oninput="ttCount(this)">'+esc(t)+'</textarea>'+
     '<div class="dichline muted" style="margin-top:3px"'+(showD?'':' hidden')+'>🌐 <b>Dịch:</b> <span class="dichval">'+esc(row.dich_viet||'')+'</span></div>'+
+    '<div class="kwline muted" style="margin-top:3px">'+kwLineHtml(row)+'</div>'+
     '<div class="ccbox"><span class="muted"><span class="cc">'+esc(String(row.so_ky_tu))+'</span> ký tự</span>'+
     '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="ttCopy(this)">Copy</button>'+
     '<button class="ghost" style="padding:3px 10px;font-size:12px" onclick="ttRegen(this)" title="Tạo lại theo khung xương khác của kênh">🔄 Tạo lại</button>'+
-    (opts.useBtn ? ('<button style="padding:3px 10px;font-size:12px" data-i="'+opts.idx+'" onclick="ttUse(this)">Sử dụng</button>') : '')+
+    (opts.useBtn ? ('<button style="padding:3px 10px;font-size:12px'+(row.da_dung?';background:#2f7a4d':'')+'" data-i="'+opts.idx+'"'+(row.da_dung?' data-used="1"':'')+' onclick="ttUse(this)">'+(row.da_dung?'✔ Đã dùng — bấm để bỏ':'Sử dụng')+'</button>') : '')+
     '</div></div>';
 }
 // Nut 🔄 Tao lai: xoay vong sang KHUNG XUONG ke tiep cua kenh, thay tieu de tai cho.
@@ -535,7 +547,8 @@ async function ttRegen(btn){
   const nextKi=(N>0)?((ki+1)%N):-1;
   btn.disabled=true; const old=btn.textContent; btn.textContent='…';
   try{
-    const r=await api('/api/recreate-one',{title_goc:row.title_goc, profile_name:profile||'', output_language:lang||'vi', khung_index:nextKi});
+    const mainKw=(isRw?window.__rwMainKw:window.__scanMainKw)||'';
+    const r=await api('/api/recreate-one',{title_goc:row.title_goc, profile_name:profile||'', output_language:lang||'vi', khung_index:nextKi, main_keyword:mainKw});
     if(r.ok && r.tieu_de_tai_tao){
       const ta=vb.querySelector('.ttedit'); ta.value=r.tieu_de_tai_tao; ttCount(ta);
       vb.dataset.ki=r.khung_index;
@@ -544,6 +557,8 @@ async function ttRegen(btn){
       const dl=vb.querySelector('.dichline'); const showD=r.dich_viet && r.dich_viet.trim()!==r.tieu_de_tai_tao.trim();
       if(dl){ dl.hidden=!showD; const dv=dl.querySelector('.dichval'); if(dv) dv.textContent=r.dich_viet||''; }
       row.tieu_de_tai_tao=r.tieu_de_tai_tao; row.khung_index=r.khung_index; row.so_ky_tu=r.so_ky_tu; row.dich_viet=r.dich_viet;
+      ['tu_khoa_chinh','tu_khoa_kenh','tu_khoa_len_view','kw_ok'].forEach(k=>{ row[k]=r[k]; });
+      const kl=vb.querySelector('.kwline'); if(kl) kl.innerHTML=kwLineHtml(row);
     } else { alert(r.error||'Không tạo lại được, thử lại.'); }
   }catch(e){ alert(String(e)); }
   btn.disabled=false; btn.textContent=old;
@@ -587,6 +602,7 @@ function exportToStudio(scope){
     const row=(window.__rwRows||[])[+box.dataset.i]||{};
     let ideas='';
     if(row.dich_viet) ideas+='Nghĩa tiếng Việt: '+row.dich_viet+'\n';
+    if(row.tu_khoa_chinh) ideas+='Từ khóa chính: '+row.tu_khoa_chinh+'\n';
     if(row.ly_do_tai_tao) ideas+='Vì sao chọn: '+row.ly_do_tai_tao;
     projects.push({
       id:'pj_'+now.toString(36)+n.toString(36)+Math.random().toString(36).slice(2,6),
@@ -636,17 +652,30 @@ async function toThumbBatch(scope){
   else if(note){ note.innerHTML='Đã chuyển <b>'+titles.length+'</b> tiêu đề sang đây. Hãy <b>chọn dự án</b> (DNA thumbnail) rồi bấm <b>▶ Sinh prompt hàng loạt</b>.'; }
 }
 // danh dau "Da dung": luu video + tieu de anh da sua, lan sau khong hien lai (cung tu khoa)
+// Nut bat/tat: "Su dung" -> danh dau; "✔ Da dung — bam de bo" -> go danh dau (khong can vao Thu vien)
 async function ttUse(btn){
   const x=(window.__scanRows||[])[+btn.dataset.i]; if(!x) return;
+  const tr=btn.closest('tr');
+  const USED_TXT='✔ Đã dùng — bấm để bỏ';
+  if(btn.dataset.used==='1'){          // dang la "Da dung" -> BO danh dau
+    btn.disabled=true; btn.textContent='…';
+    try{
+      const r=await api('/api/used/delete',{keyword:window.__scanKeyword,video_id:x.video_id});
+      if(r.ok){ delete btn.dataset.used; btn.textContent='Sử dụng'; btn.style.background=''; if(tr) tr.style.opacity=1; x.da_dung=false; }
+      else { btn.textContent=USED_TXT; alert(r.error||'Lỗi'); }
+    }catch(e){ btn.textContent=USED_TXT; alert(String(e)); }
+    btn.disabled=false; return;
+  }
   const box=btn.closest('.verblock')||btn.closest('td');
   const finalTitle=box.querySelector('textarea').value.trim();
   btn.disabled=true; btn.textContent='…';
   try{
     const r=await api('/api/use-title',{keyword:window.__scanKeyword,video_id:x.video_id,
       title_goc:x.title_goc,tieu_de_final:finalTitle,channel:x.channel,views:x.views});
-    if(r.ok){btn.textContent='✔ Đã dùng';btn.style.background='#2f7a4d';btn.closest('tr').style.opacity=.5;}
-    else{btn.disabled=false;btn.textContent='Sử dụng';alert(r.error||'Lỗi');}
-  }catch(e){btn.disabled=false;btn.textContent='Sử dụng';alert(String(e));}
+    if(r.ok){btn.dataset.used='1';btn.textContent=USED_TXT;btn.style.background='#2f7a4d';if(tr)tr.style.opacity=.5;x.da_dung=true;}
+    else{btn.textContent='Sử dụng';alert(r.error||'Lỗi');}
+  }catch(e){btn.textContent='Sử dụng';alert(String(e));}
+  btn.disabled=false;
 }
 // tao prompt thumbnail: nhin thumbnail goc + tieu de (da sua) -> prompt bo tro cho tieu de
 async function ttThumb(btn){
@@ -873,12 +902,14 @@ $('#btnRewrite').onclick=async()=>{
   $('#rwNote').textContent='';
   const pg=makeProgress($('#rwOut'),'Đang bóc tách & viết lại theo DNA');
   try{
-    const r=await api('/api/rewrite-titles',{inputs,profile_name:$('#rwProfile').value,output_language:$('#rwLang').value});
+    const mainKw=$('#rwKeyword').value.trim();
+    const r=await api('/api/rewrite-titles',{inputs,profile_name:$('#rwProfile').value,output_language:$('#rwLang').value,main_keyword:mainKw});
     pg.stop();
     if(!r.ok){$('#rwOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
     else{
       if(r.note) $('#rwNote').innerHTML='<span class="err">'+esc(r.note)+'</span>';
       window.__rwRows=r.rows||[]; window.__rwProfile=$('#rwProfile').value; window.__rwLang=$('#rwLang').value;
+      window.__rwMainKw=mainKw;
       window.__rwKhungN=(r.khuon && r.khuon.khung_xuong_tieu_de)?r.khuon.khung_xuong_tieu_de.length:0;
       renderRewriteRows(r.rows||[], r.khuon, r.khuon_name);
     }
@@ -897,12 +928,13 @@ function histCard(e){
   const dich=e.dich_viet?('<div class="muted">🌐 '+esc(e.dich_viet)+'</div>'):'';
   const goc=e.title_goc?('<div class="muted">📌 Gốc: '+esc(e.title_goc)+'</div>'):'';
   const lydo=e.ly_do?('<div class="muted">💡 Vì sao chọn: '+esc(e.ly_do)+'</div>'):'';
+  const tk=e.tu_khoa_chinh?('<div class="muted">🔑 Từ khóa chính: '+esc(e.tu_khoa_chinh)+'</div>'):'';
   const meta='<div class="muted" style="font-size:11px;margin-top:4px">khuôn: <b>'+esc(e.khuon_name||'chung')+'</b> · '+esc(String(e.lang||'').toUpperCase())+' · '+esc(e.created_at||'')+'</div>';
   const id=esc(e.id||'');
   return '<div class="libitem" style="align-items:flex-start">'+
     '<div class="meta" style="flex:1">'+
       '<div class="nm">✍️ '+esc(e.tieu_de_tai_tao||'')+' <span class="muted" style="font-weight:400">('+(e.so_ky_tu||0)+' ký tự)</span></div>'+
-      dich+goc+lydo+meta+
+      dich+goc+tk+lydo+meta+
     '</div>'+
     '<div style="display:flex;flex-direction:column;gap:6px">'+
       '<button class="ghost" onclick="histCopy(this,\''+id+'\')">Copy</button>'+
@@ -996,16 +1028,19 @@ $('#btnScan').onclick=async()=>{
     pg.stop();
     if(!r.ok){$('#scanOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
     else{
-      window.__scanRows=r.rows||[]; window.__scanKeyword=r.keyword||kw;
+      window.__scanRows=r.rows||[]; window.__scanKeyword=r.keyword||kw; window.__scanMainKw=r.keyword||kw;
       window.__scanProfile=$('#profileSel').value; window.__scanLang=$('#outLang').value;
       window.__scanKhungN=(r.khuon && r.khuon.khung_xuong_tieu_de)?r.khuon.khung_xuong_tieu_de.length:0;
       const mk=r.market||{};
       let kwinfo='Từ khóa: '+(r.keyword||kw)+(r.corrected?(' (đã tự sửa từ "'+(r.original_keyword||'')+'")'):'');
+      kwinfo+=' · 🔑 tiêu đề mới bắt buộc chứa từ khóa này';
+      if(r.used_count>0 && r.hide_used) kwinfo+=' · 🙈 đang ẩn '+r.used_count+' video đã đánh dấu "Sử dụng" (bỏ tick "Ẩn video đã dùng" rồi quét lại để xem và gỡ)';
+      else if(r.used_count>0) kwinfo+=' · ✔ '+r.used_count+' video đã dùng được làm mờ — bấm nút xanh để bỏ đánh dấu';
       $('#scanNote').textContent=kwinfo+' · Thị trường: '+(mk.relevance_language||'?')+'/'+(mk.region_code||'?')+' · Chế độ: '+(r.mode||'')+' · Mốc: '+(r.window||'')+(r.note?(' · '+r.note):'');
       if(!r.rows||!r.rows.length){$('#scanOut').innerHTML=khuonStructHtml(r.khuon, r.khuon_name, false)+'<p class="muted">'+(r.note?esc(r.note):'Không có kết quả.')+'</p>';}
       else{
         let rows='';
-        r.rows.forEach((x,i)=>{rows+='<tr>'+
+        r.rows.forEach((x,i)=>{rows+='<tr'+(x.da_dung?' style="opacity:.5"':'')+'>'+
           '<td>'+x.rank+'</td><td class="views">'+nf(x.views)+'</td>'+
           '<td style="min-width:140px"><a href="'+esc(x.url)+'" target="_blank">'+esc(x.title_goc)+'</a> '+vtypeBadge(x)+'<div class="muted">'+esc(x.channel)+(x.duration_sec?(' · '+fmtDur(x.duration_sec)):'')+'</div>'+(x.dich_goc?('<div class="muted" style="margin-top:4px">🌐 <b>Dịch:</b> '+esc(x.dich_goc)+'</div>'):'')+'</td>'+
           '<td style="min-width:150px"><span class="tag">vấn đề</span> '+esc(x.tu_khoa_van_de)+'<br><span class="tag">tò mò</span> '+esc(x.khoang_trong_to_mo)+
@@ -1037,16 +1072,34 @@ $('#btnResetSeen').onclick=async()=>{
 async function loadDna(selected){
   const r=await (await fetch('/api/dna?type=ai')).json();
   const list=r.dna||[];
-  ['#aiThumbSel','#atbSel'].forEach(id=>{
+  // Giu lua chon DNA anh dang chon: uu tien (1) gia tri truyen vao (nut "Dung" o Thu vien)
+  // > (2) gia tri dang chon trong chinh o do (khi chuyen tac vu) > (3) DNA mac dinh da luu.
+  const ids=['#aiThumbSel','#atbSel'];
+  const current={}; ids.forEach(id=>{const s=$(id); if(s) current[id]=s.value;});
+  ids.forEach(id=>{
     const sel=$(id); if(!sel) return;
     sel.innerHTML='<option value="">(chưa có — dùng phong cách chung)</option>';
     list.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);});
   });
-  const def=selected||localStorage.getItem('defDna');
-  if(def) ['#aiThumbSel','#atbSel'].forEach(id=>{const s=$(id); if(s && [...s.options].some(o=>o.value===def)) s.value=def;});
+  let stored=''; try{ stored=localStorage.getItem('defDna')||''; }catch(e){}
+  ids.forEach(id=>{
+    const s=$(id); if(!s) return;
+    const has=v=>v && [...s.options].some(o=>o.value===v);
+    const pick = has(selected) ? selected : (has(current[id]) ? current[id] : (has(stored) ? stored : ''));
+    s.value=pick;
+  });
   const hint=document.getElementById('dnaHint');
   if(hint) hint.textContent = list.length ? '' : '↑ Chưa có DNA nào — hãy làm "Tạo DNA phong cách" trước (hoặc cứ để "phong cách chung").';
 }
+// Doi DNA o 1 trong 2 o (Tao don / Tao hang loat) -> luu lai + dong bo o kia => chuyen tac vu hay F5 van giu
+['#aiThumbSel','#atbSel'].forEach(id=>{
+  const s=$(id); if(!s) return;
+  s.addEventListener('change',()=>{
+    const v=s.value;
+    ['#aiThumbSel','#atbSel'].forEach(o=>{ const x=$(o); if(x && x!==s && [...x.options].some(op=>op.value===v)) x.value=v; });
+    try{ if(v) localStorage.setItem('defDna',v); else localStorage.removeItem('defDna'); }catch(e){}
+  });
+});
 // Tab AI: nhap tieu de -> 1 prompt thumbnail (AI style, co chu) theo DNA du an
 $('#btnAiThumb').onclick=async()=>{
   const title=$('#aiThumbTitle').value.trim(); if(!title){alert('Nhập tiêu đề');return;}
@@ -1061,7 +1114,7 @@ $('#btnAiThumb').onclick=async()=>{
         (r.phan_tich_tieu_de?('<p class="muted" style="margin-top:10px">📌 <b>Tiêu đề nói về:</b> '+esc(r.phan_tich_tieu_de)+'</p>'):'')+
         (r.chu_the_chinh?('<p class="muted">🎯 <b>Chủ thể:</b> '+esc(r.chu_the_chinh)+'</p>'):'')+
         (r.boi_canh_de_xuat?('<p class="muted">🏞️ <b>Bối cảnh:</b> '+esc(r.boi_canh_de_xuat)+'</p>'):'')+
-        (r.text_tren_thumb?('<p class="muted">🔤 <b>Chữ trên thumb:</b> '+esc(r.text_tren_thumb)+'</p>'):'')+
+        (r.text_tren_thumb?('<p class="muted">🔤 <b>Chữ trên thumb:</b> '+esc(r.text_tren_thumb)+(r.ngon_ngu_tieu_de?(' <span style="opacity:.7">('+esc(r.ngon_ngu_tieu_de)+' — cùng ngôn ngữ tiêu đề)</span>'):'')+'</p>'):'')+
         (r.khoa_bo_cuc?('<p class="muted">🔒 <b>Bố cục đã khóa</b> (cố định mọi thumb) · biểu tượng + chủ thể + hook bám tiêu đề</p>'):'')+
         (r.khoa_chu_en?('<p class="muted">🔒 <b>Kiểu chữ (khóa, giống mọi thumb):</b> <span style="color:#8fd6a0">'+esc(r.khoa_chu_en)+'</span></p>'):'')+
         (r.khoa_nhan_vat_en?('<p class="muted">🔒 <b>Nhân vật (khóa, giống mọi thumb):</b> <span style="color:#8fd6a0">'+esc(r.khoa_nhan_vat_en)+'</span></p>'):'')+
@@ -1114,7 +1167,7 @@ function atbRender(r){
   (r.items||[]).forEach((it,i)=>{
     let cell;
     if(it.state==='done') cell='<pre style="margin:0;white-space:pre-wrap">'+esc(it.prompt||'')+'</pre>'+
-        (it.text_tren_thumb?('<div class="muted">🔤 '+esc(it.text_tren_thumb)+'</div>'):'');
+        (it.text_tren_thumb?('<div class="muted">🔤 '+esc(it.text_tren_thumb)+(it.ngon_ngu?(' <span style="opacity:.7">('+esc(it.ngon_ngu)+')</span>'):'')+'</div>'):'');
     else if(it.state==='running') cell='<span style="color:#0969da">🔄 Đang làm…</span>';
     else if(it.state==='error') cell='<span class="err" title="'+esc(it.error||'')+'">❌ Lỗi</span>';
     else cell='<span class="muted">⏳ Chờ</span>';
@@ -1207,17 +1260,16 @@ function contentDnaHtml(c){
 }
 function renderDna(r){
   const t=r.dna.thumbnail_dna||{}, c=r.dna.content_dna||{};
-  let extra=''; if(r.video_title!==undefined) extra='<p class="muted">Từ video: '+esc(r.video_title||'')+' · '+(r.frames_count||0)+' khung'+(r.has_thumbnail?' + thumbnail':'')+'</p>';
+  let extra=''; if(r.video_title!==undefined) extra='<p class="muted">Từ link: '+esc(r.video_title||'')+(r.thumbs_count?(' · phân tích '+r.thumbs_count+' thumbnail'):'')+'</p>';
   $('#dnaOut').innerHTML='<p style="margin-top:12px">✅ Đã lưu DNA: <b>'+esc(r.name)+'</b></p>'+extra+
-    thumbDnaHtml(t)+contentDnaHtml(c);
+    thumbDnaHtml(t)+(Object.keys(c).length?contentDnaHtml(c):'');
   loadDna(r.name); loadProjects();
 }
 $('#btnDna').onclick=async()=>{
   const name=$('#dnaName').value.trim(); if(!name){alert('Đặt tên hồ sơ DNA');return;}
   const fd=new FormData(); fd.append('name',name); fd.append('type','ai');
   for(const f of $('#dnaThumbs').files) fd.append('thumbnails',f);
-  for(const f of $('#dnaContents').files) fd.append('contents',f);
-  if(!$('#dnaThumbs').files.length && !$('#dnaContents').files.length){alert('Tải lên ít nhất 1 ảnh');return;}
+  if(!$('#dnaThumbs').files.length){alert('Tải lên ít nhất 1 ảnh thumbnail');return;}
   const b=$('#btnDna'); b.disabled=true; b.textContent='Đang nhìn ảnh...';
   const pg=makeProgress($('#dnaOut'),'Gemini đang phân tích ảnh');
   try{const r=await (await fetch('/api/image-dna',{method:'POST',body:fd})).json();
@@ -1229,9 +1281,9 @@ $('#btnDna').onclick=async()=>{
 $('#btnDnaVideo').onclick=async()=>{
   const name=$('#dnaName').value.trim(); if(!name){alert('Đặt tên hồ sơ DNA (ô bên trên)');return;}
   const url=$('#dnaVideoUrl').value.trim(); if(!url){alert('Dán link video');return;}
-  const b=$('#btnDnaVideo'); b.disabled=true; b.textContent='Đang tải & cắt khung...';
-  const pg=makeProgress($('#dnaOut'),'Đang tải & phân tích (30–90 giây)');
-  try{const r=await api('/api/video-dna',{name:name,video_url:url,type:'ai',frames:$('#dnaFrames').value});
+  const b=$('#btnDnaVideo'); b.disabled=true; b.textContent='Đang lấy thumbnail...';
+  const pg=makeProgress($('#dnaOut'),'Đang lấy thumbnail & phân tích (khoảng 20–40 giây)');
+  try{const r=await api('/api/video-dna',{name:name,video_url:url,type:'ai'});
     pg.stop();
     if(!r.ok)$('#dnaOut').innerHTML='<p class="err">'+esc(r.error)+'</p>'; else renderDna(r);
   }catch(e){pg.stop();$('#dnaOut').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
@@ -1406,9 +1458,9 @@ async function loadLibrary(){
         '<div class="muted">'+esc(p.channel_url||'')+'</div></div>'+
         '<div style="display:flex;gap:6px"><button class="ghost" onclick="useProfile(\''+nm+'\')">Dùng</button>'+
         '<button style="background:#5a2a2a" onclick="delProfile(\''+nm+'\')">Xoá</button></div></div>';
-    }).join(''):'<p class="muted">Chưa có. Tạo ở tab Tiêu đề → Bước 1.</p>';
+    }).join(''):'<p class="muted">Chưa có. Tạo ở tab Tiêu đề → Phân tích DNA kênh (Bước 1).</p>';
   }catch(e){$('#libKhuon').innerHTML='<p class="err">'+esc(String(e))+'</p>';}
-  await loadDnaGroup('ai','#libAi','Chưa có dự án AI. Tạo ở tab AI → Bước 1.');
+  await loadDnaGroup('ai','#libAi','Chưa có DNA ảnh thumb. Tạo ở tab Tiêu đề → Quét ảnh thumb (Bước 2).');
   await loadDnaGroup('ban_content','#libBc','Chưa có dự án Bán Content. Tạo ở tab Bán Content → Bước 1.');
   try{
     const ru=await (await fetch('/api/used')).json();

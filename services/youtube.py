@@ -103,28 +103,64 @@ def suggest_expand(keyword, hl="vi", max_results=60):
 
 def detect_market(keyword):
     """Doan (relevance_language, region_code) tu ngon ngu cua tu khoa."""
-    text = keyword or ""
-    # tieng Viet (co dau dac trung)
-    if re.search(r"[ăâđêôơưĂÂĐÊÔƠƯáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]", text):
-        return ("vi", "VN")
-    # CJK
-    if re.search(r"[一-鿿]", text):
-        return ("zh", "CN")
+    text = (keyword or "").lower()
+    words = re.findall(r"[^\W\d_]+", text)
+
+    # 1) Cac he chu khong-Latin (kana TRUOC Han: tieng Nhat co ca kanji lan kana)
     if re.search(r"[぀-ヿ]", text):
         return ("ja", "JP")
-    if re.search(r"[가-힯]", text):
+    if re.search(r"[가-힯ᄀ-ᇿ]", text):
         return ("ko", "KR")
+    if re.search(r"[一-鿿]", text):
+        return ("zh", "CN")
     if re.search(r"[฀-๿]", text):
         return ("th", "TH")
+    if re.search(r"[Ѐ-ӿ]", text):
+        return ("ru", "RU")
+    if re.search(r"[؀-ۿ]", text):
+        return ("ar", "SA")
+    if re.search(r"[ऀ-ॿ]", text):
+        return ("hi", "IN")
+    if re.search(r"[Ͱ-Ͽ]", text):
+        return ("el", "GR")
+
+    # 2) Chu CHI co o tieng Viet (ă ơ ư đ + nguyen am dau hoi/nga/nang) -> chac chan la tieng Viet
+    if re.search(r"[ăơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịĩọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]", text):
+        return ("vi", "VN")
+
+    # 3) Tay Ban Nha / Bo Dao Nha: dau/chu dac trung + tu chuc nang (tieng Viet khong co cac tu nay)
+    es_strong = {"qué", "cómo", "cuál", "cuáles", "cuándo", "dónde", "quién", "más", "también", "así", "aún",
+                 "están"}
+    es_weak = {"los", "las", "del", "una", "unos", "unas", "pero", "muy", "hacia", "esto", "sus", "con",
+               "el", "en", "un", "y", "desde", "hasta", "donde", "cuando", "nuestro", "nuestra", "todos", "todas",
+               "la", "al", "lo", "es", "su"}
+    pt_strong = {"não", "você", "são", "então", "porém", "também", "até"}
+    pt_weak = {"uma", "dos", "das", "pelo", "pela", "seu", "sua", "muito", "os", "mais", "mas"}
+    n = lambda s: len(set(words) & s)   # dem theo TU KHAC NHAU ('la la land' chi tinh 1)
+    # duoi tu dac trung Tay Ban Nha (CHI tinh khi co nguyen am dau a/e/i/o/u -> tranh nham 'ideas','pizzas' cua tieng Anh)
+    es_suffix = bool(re.search(r"[áéíóú]", text)) and any(
+        len(w) >= 5 and w.endswith(("os", "as", "ción", "dad", "mente", "ones", "ico", "ica", "ía")) for w in words)
+    es_score = (3 if re.search(r"[ñ¿¡]", text) else 0) + 2 * n(es_strong) + n(es_weak) + (2 if es_suffix else 0)
+    pt_score = (3 if "ç" in text else 0) + 2 * n(pt_strong) + n(pt_weak) + (1 if re.search(r"[ãõ]", text) else 0)
+    if es_score >= 2 and es_score >= pt_score:
+        return ("es", "MX")
+    if pt_score >= 2:
+        return ("pt", "BR")
+
+    # 4) Tieng Viet (nguyen am co dau chung, vd 'cach lam', 'tinh yeu')
+    if re.search(r"[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]", text):
+        return ("vi", "VN")
+
     # mac dinh: tieng Anh / My
     return ("en", "US")
 
 
 def window_to_published_after(window):
-    """window: '48h','1m','3m','6m','1y','2y','3y' -> chuoi RFC3339 (publishedAfter)."""
+    """window: '48h','7d','1m','3m','6m','1y','2y','3y' -> chuoi RFC3339 (publishedAfter)."""
     now = datetime.now(timezone.utc)
     mapping_days = {
         "48h": 2,
+        "7d": 7,
         "1m": 30,
         "3m": 90,
         "6m": 180,

@@ -54,6 +54,42 @@ def correct_keyword(keyword):
         return keyword, False
 
 
+def _norm(s):
+    return " ".join((s or "").lower().split())
+
+
+def _clean_kw_list(values, limit=12):
+    """Lam sach danh sach tu khoa: bo rong/trung, cat toi da `limit`."""
+    out, seen = [], set()
+    for k in (values or []):
+        s = str(k).strip().strip("\"'")
+        key = _norm(s)
+        if s and key not in seen:
+            seen.add(key)
+            out.append(s)
+    return out[:limit]
+
+
+def _channel_keywords(profile):
+    return _clean_kw_list((profile or {}).get("tu_khoa_chien_thang"))
+
+
+def extract_channel_keywords(titles):
+    """Rut 'TU KHOA CHIEN THANG' cua kenh tu cac tieu de nhieu view (giu nguyen ngon ngu tieu de)."""
+    system = (
+        "Ban la chuyen gia SEO YouTube. Tu danh sach tieu de NHIEU VIEW NHAT cua 1 kenh, hay rut ra "
+        "'TU KHOA CHIEN THANG' cua kenh: cac cum tu khoa (1-3 tu, la chu de/danh tu) LAP LAI nhieu nhat "
+        "va dang dan dat luot xem. BO cac tu chung chung (cach, tai sao, the, how, why, what, ...). "
+        "GIU NGUYEN ngon ngu cua tieu de."
+    )
+    user = (
+        "Cac tieu de:\n" + "\n".join("- " + t for t in titles)
+        + '\n\nTra ve JSON: {"tu_khoa_chien_thang": ["...", "..."]} (6-12 cum, xep tu quan trong nhat).'
+    )
+    r = llm.chat_json(system, user, temperature=0.2, role="analyze")
+    return _clean_kw_list(r.get("tu_khoa_chien_thang") if isinstance(r, dict) else r)
+
+
 def analyze_channel(titles):
     system = (
         "Ban la chuyen gia phan tich tieu de YouTube. "
@@ -61,6 +97,8 @@ def analyze_channel(titles):
         "va rut ra 'khuon dat tieu de' dac trung cua kenh do (Title DNA).\n" + KHUNG_CONG_THUC
         + "\nCac truong mo ta (vi_tri_tu_khoa, kieu_in_hoa, giong_dieu, ghi_chu, tu_huyet_chu_dao) "
         "viet bang TIENG VIET CO DAU day du."
+        + "\ntu_khoa_chien_thang = cac cum tu khoa (1-3 tu, la chu de) LAP LAI nhieu nhat o tieu de top view; "
+        "bo tu chung chung (cach, tai sao, how, why...); giu NGUYEN ngon ngu cua tieu de."
     )
     user = (
         "Day la cac tieu de nhieu view nhat cua 1 kenh. Hay phan tich va tra ve JSON dung cau truc:\n"
@@ -72,11 +110,20 @@ def analyze_channel(titles):
         '  "kieu_in_hoa": "mo ta thoi quen in hoa",\n'
         '  "giong_dieu": "mo ta chat giong tong the",\n'
         '  "khung_xuong_tieu_de": ["[So] + [Chu de] + [Yeu to tam ly manh]", "..."],\n'
+        '  "tu_khoa_chien_thang": ["cum tu khoa 1", "cum tu khoa 2", "... (6-12 cum)"],\n'
         '  "ghi_chu": "nhung dac diem rieng khac khien tieu de kenh nay hut view"\n'
         "}\n\n"
         "Cac tieu de:\n" + "\n".join("- " + t for t in titles)
     )
-    return llm.chat_json(system, user, temperature=0.3, role="analyze")
+    profile = llm.chat_json(system, user, temperature=0.3, role="analyze")
+    kws = _clean_kw_list(profile.get("tu_khoa_chien_thang")) if isinstance(profile, dict) else []
+    if not kws:  # model quen tra truong nay -> rut rieng 1 lan
+        try:
+            kws = extract_channel_keywords(titles)
+        except Exception:
+            kws = []
+    profile["tu_khoa_chien_thang"] = kws
+    return profile
 
 
 # ---------------- Khoi B: boc tach + tai tao theo khuon ----------------
@@ -92,19 +139,89 @@ def _lang_name(output_language):
     return {
         "vi": "Tieng Viet", "en": "English", "zh": "Tieng Trung",
         "ja": "Tieng Nhat", "ko": "Tieng Han", "th": "Tieng Thai",
+        "es": "Espanol (Tay Ban Nha)",
     }.get(output_language, output_language)
 
 
-def scan_decompose_recreate(videos, profile, output_language):
+def _keyword_rules(main_keyword, channel_kws, lang):
+    """Quy tac TU KHOA (uu tien cao nhat) chen vao prompt tai tao/viet lai tieu de."""
+    rules = ["QUY TAC TU KHOA (BAT BUOC, uu tien CAO NHAT):"]
+    if main_keyword:
+        rules.append(
+            '- TU KHOA CHINH = "%s". Tieu de tai tao PHAI chua tu khoa nay trong 50 ky tu DAU. '
+            "Neu ngon ngu dau ra (%s) khac ngon ngu cua tu khoa, dung ban dich TU NHIEN cua tu khoa "
+            "trong ngon ngu dau ra (giu nguyen neu la ten rieng)." % (main_keyword, lang)
+        )
+    else:
+        rules.append(
+            "- Voi MOI tieu de goc, tu chon 1 TU KHOA CHINH (cum 1-3 tu, chu de SEO cua tieu de) va ghi vao "
+            "'tu_khoa_chinh'. Tieu de tai tao PHAI chua tu khoa nay trong 50 ky tu DAU."
+        )
+    rules.append(
+        "- TU KHOA LEN VIEW: tim trong TIEU DE GOC (da co nhieu view) cum tu khoa da giup no len view va ghi vao "
+        "'tu_khoa_len_view'. Neu con cho (tong <= ~75 ky tu) hay GIU cum do (dich sang ngon ngu dau ra neu can)."
+    )
+    if channel_kws:
+        rules.append(
+            "- TU KHOA CHIEN THANG CUA KENH: " + " | ".join(channel_kws) + ". Tieu de tai tao PHAI chua IT NHAT 1 tu khoa "
+            "trong danh sach nay (co the trung voi tu khoa chinh; dich sang ngon ngu dau ra neu can). "
+            "'tu_khoa_kenh' = CHINH XAC doan chu cua tu khoa kenh NHU XUAT HIEN trong tieu_de_tai_tao "
+            "(da dich sang ngon ngu dau ra neu can, copy y nguyen tung ky tu)."
+        )
+    rules.append(
+        "- THU TU UU TIEN khi xung dot: (1) tu khoa chinh trong 50 ky tu dau > (2) it nhat 1 tu khoa chien thang "
+        "cua kenh > (3) giu tu khoa len view cua tieu de goc neu con cho. Van PHAI theo KHUNG XUONG + do dai 65-75 ky tu."
+    )
+    rules.append(
+        "- 'tu_khoa_trong_tieu_de' = CHINH XAC doan chu cua TU KHOA CHINH nhu no xuat hien trong tieu_de_tai_tao "
+        "(copy y nguyen tung ky tu)."
+    )
+    return "\n".join(rules)
+
+
+def _kw_fields(title, main_keyword, r, channel_kws):
+    """Kiem tra tieu de da du tu khoa chua. r = dict LLM tra ve (co the rong).
+    Tra ve cac truong tu_khoa_* + kw_ok (None neu chua co tieu de)."""
+    t = _norm(title)
+    typed = (main_keyword or "").strip()
+    declared = (r.get("tu_khoa_trong_tieu_de") or "").strip()
+    main_decl = (r.get("tu_khoa_chinh") or "").strip()
+    kenh_decl = (r.get("tu_khoa_kenh") or "").strip()
+
+    def in_front(k):  # tu khoa co mat va BAT DAU trong 50 ky tu dau
+        kn = _norm(k)
+        pos = t.find(kn) if kn else -1
+        return 0 <= pos < 50
+
+    main_ok = any(in_front(c) for c in (typed, declared) if c)
+    kenh_ok = None
+    if channel_kws:
+        kenh_ok = any(_norm(k) in t for k in channel_kws) or bool(kenh_decl and _norm(kenh_decl) in t)
+    shown = declared if (declared and _norm(declared) in t) else (typed or main_decl)
+    return {
+        "tu_khoa_chinh": shown,
+        "tu_khoa_len_view": (r.get("tu_khoa_len_view") or "").strip(),
+        "tu_khoa_kenh": kenh_decl,
+        "kw_main_ok": main_ok if t else None,
+        "kw_kenh_ok": kenh_ok if t else None,
+        "kw_ok": (main_ok and kenh_ok is not False) if t else None,
+    }
+
+
+def scan_decompose_recreate(videos, profile, output_language, main_keyword=None):
     """
     videos: list dict co 'title','views','url','channelTitle'
     profile: khuon kenh (dict tu analyze_channel) hoac None (dung cong thuc chung)
     output_language: 'vi' | 'en' | ... (ngon ngu tieu de tai tao)
-    Voi MOI tieu de goc -> tao 1 tieu de tai tao HAY NHAT (tu chon khung xuong tot nhat).
+    main_keyword: tu khoa chinh BAT BUOC co trong tieu de moi (None = AI tu chon cho tung tieu de)
+    Voi MOI tieu de goc -> tao 1 tieu de tai tao HAY NHAT (tu chon khung xuong tot nhat),
+    bam tu khoa chinh + tu khoa chien thang cua kenh + giu tu khoa da giup tieu de goc len view.
     Tra ve 'khung_index' (0-based, hoac -1 neu khong theo khung nao) de nut 'Tao lai' xoay vong.
     """
     import json
 
+    main_keyword = (main_keyword or "").strip() or None
+    ch_kws = _channel_keywords(profile)
     khung_list = _khung_list_of(profile)
 
     profile_txt = ""
@@ -137,6 +254,7 @@ def scan_decompose_recreate(videos, profile, output_language):
         + ver_rule + "\n"
         "3) GIAI THICH (ly_do_tai_tao): giu lai van de gi, khoang trong to mo gi, bam khung nao, vi sao de hut click.\n"
         + KHUNG_CONG_THUC + "\n" + khung_block + profile_txt
+        + "\n" + _keyword_rules(main_keyword, ch_kws, lang)
         + "\nTIEU DE TAI TAO viet bang: " + lang
         + "\nBAT BUOC: IN HOA TOAN BO 1-2 tu khoa cam xuc/van de manh nhat de tao diem nhan "
         "(vi du: THAO TUNG, NOI DOI, HUY HOAI, PHAN BOI, BIEN MAT). TUYET DOI KHONG in hoa toan bo ca tieu de."
@@ -155,6 +273,10 @@ def scan_decompose_recreate(videos, profile, output_language):
         '  "tu_huyet": "So hai|To mo|Tham lam|Canh giac",\n'
         '  "khung_index": <so thu tu khung da chon (0-based), hoac -1 neu khong theo khung>,\n'
         '  "dich_goc": "ban dich TIENG VIET CO DAU cua TIEU DE GOC (neu von da tieng Viet thi ghi y nguyen)",\n'
+        '  "tu_khoa_len_view": "cum tu khoa trong TIEU DE GOC da giup no len view",\n'
+        '  "tu_khoa_chinh": "tu khoa chinh cua tieu de tai tao",\n'
+        '  "tu_khoa_trong_tieu_de": "doan chu cua tu khoa chinh NHU XUAT HIEN trong tieu_de_tai_tao",\n'
+        '  "tu_khoa_kenh": "doan chu cua tu khoa kenh NHU XUAT HIEN trong tieu_de_tai_tao (da dich neu can; de trong neu khong co danh sach)",\n'
         '  "tieu_de_tai_tao": "...",\n'
         '  "so_ky_tu": <do dai tieu de tai tao>,\n'
         '  "dich_viet": "ban dich TIENG VIET CO DAU cua TIEU DE TAI TAO (neu da tieng Viet thi y nguyen)",\n'
@@ -216,17 +338,37 @@ def scan_decompose_recreate(videos, profile, output_language):
             "so_ky_tu": r.get("so_ky_tu", len(t)),
             "dich_viet": r.get("dich_viet", ""),
             "ly_do_tai_tao": r.get("ly_do_tai_tao", ""),
+            **_kw_fields(t, main_keyword, r, ch_kws),
         })
+
+    # EP tu khoa: dong nao con thieu thi tao lai 1 lan (toi da 8 dong/lan de khong cham)
+    fixed = 0
+    for row in out:
+        if row.get("kw_ok") is False and fixed < 8 and row["title_goc"]:
+            fixed += 1
+            try:
+                fx = recreate_one(row["title_goc"], profile, output_language, row["khung_index"],
+                                  main_keyword=main_keyword, attempts=1)
+            except Exception:
+                continue
+            if fx.get("tieu_de_tai_tao") and fx.get("kw_ok"):
+                for k in ("tieu_de_tai_tao", "so_ky_tu", "dich_viet", "tu_khoa_chinh", "tu_khoa_len_view",
+                          "tu_khoa_kenh", "kw_main_ok", "kw_kenh_ok", "kw_ok"):
+                    row[k] = fx.get(k, row.get(k))
+                row["ly_do_tai_tao"] = (row.get("ly_do_tai_tao") or "") + " (Đã tự sửa lại để có đủ từ khóa.)"
     return out
 
 
-def recreate_one(title_goc, profile, output_language, khung_index):
+def recreate_one(title_goc, profile, output_language, khung_index, main_keyword=None, attempts=2):
     """
     Tao lai 1 tieu de theo 1 KHUNG XUONG cu the (cho nut 'Tao lai' xoay vong).
     khung_index: so thu tu khung (0-based). Neu khong hop le / khong co khuon -> cong thuc chung.
-    Tra ve {tieu_de_tai_tao, so_ky_tu, dich_viet, khung_index}.
+    main_keyword: tu khoa chinh BAT BUOC (None = AI tu chon). attempts: so lan thu neu thieu tu khoa.
+    Tra ve {tieu_de_tai_tao, so_ky_tu, dich_viet, khung_index, tu_khoa_*, kw_ok}.
     """
     import json
+    main_keyword = (main_keyword or "").strip() or None
+    ch_kws = _channel_keywords(profile)
     khung_list = _khung_list_of(profile)
     lang = _lang_name(output_language)
 
@@ -246,23 +388,31 @@ def recreate_one(title_goc, profile, output_language, khung_index):
         "Ban la chuyen gia dat tieu de YouTube. Tai tao 1 tieu de MOI tu tieu de goc: "
         "GIU nguyen VAN DE + KHOANG TRONG TO MO cua ban goc, KHONG dung lai toan bo cau goc.\n"
         + khung_txt + KHUNG_CONG_THUC + "\n" + profile_txt
+        + "\n" + _keyword_rules(main_keyword, ch_kws, lang)
         + "\nTIEU DE TAI TAO viet bang: " + lang
         + "\nBAT BUOC: IN HOA TOAN BO 1-2 tu khoa cam xuc/van de manh nhat de tao diem nhan. "
         "TUYET DOI KHONG in hoa toan bo ca tieu de."
     )
     user = (
         'Tieu de goc: "' + title_goc + '"\n\n'
-        'Tra ve JSON: {"tieu_de_tai_tao": "...", "so_ky_tu": <do dai>, '
+        'Tra ve JSON: {"tu_khoa_len_view": "...", "tu_khoa_chinh": "...", "tu_khoa_trong_tieu_de": "...", '
+        '"tu_khoa_kenh": "...", "tieu_de_tai_tao": "...", "so_ky_tu": <do dai>, '
         '"dich_viet": "ban dich TIENG VIET CO DAU (neu da tieng Viet thi y nguyen)"}'
     )
-    try:
-        r = llm.chat_json(system, user, temperature=0.85)
-    except Exception:
-        r = {}
-    t = (r.get("tieu_de_tai_tao") or "").strip()
+    r, t, kw = {}, "", {}
+    for _ in range(max(1, attempts)):
+        try:
+            r = llm.chat_json(system, user, temperature=0.85)
+        except Exception:
+            r = {}
+        t = (r.get("tieu_de_tai_tao") or "").strip()
+        kw = _kw_fields(t, main_keyword, r, ch_kws)
+        if kw["kw_ok"] is not False:  # du tu khoa (hoac chua co tieu de) -> dung thu lai
+            break
     return {
         "tieu_de_tai_tao": t,
         "so_ky_tu": r.get("so_ky_tu", len(t)),
         "dich_viet": r.get("dich_viet", ""),
         "khung_index": khung_index,
+        **kw,
     }
