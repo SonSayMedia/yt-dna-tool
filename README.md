@@ -27,6 +27,10 @@ Phần mềm chạy ngay trên máy của bạn (localhost), làm **2 việc ch�
 
 🎨 **Tái tạo thumbnail đối thủ theo DNA của bạn**: bảng kết quả có cột *Thumbnail*; bấm **"Tái tạo theo DNA"** dưới ảnh (hoặc tick *Lấy ý tưởng từ thumbnail đối thủ* khi làm cả loạt) → AI nhìn ảnh, lấy **bố cục + ý tưởng** và điền sẵn bóc tách cho tiêu đề mới (ô *Bố cục thumbnail đối thủ* sửa được); ảnh vẽ lại theo bố cục đó nhưng nội dung theo từ khóa/tiêu đề mới, còn phong cách/màu/font/nhân vật theo DNA của bạn. Không chép chữ/nhân vật/logo của đối thủ. Các ô bóc tách luôn là tiếng Việt có dấu.
 
+🖼️ **Tiêu đề bám theo thumbnail đối thủ** (ô tick ở *Quét từ khóa* và *Viết lại tiêu đề*, mặc định tắt): AI nhìn thumbnail + chữ trên ảnh + tiêu đề gốc, hiểu cặp này hứa điều gì, rồi viết tiêu đề mới liên quan và bổ trợ với ảnh/chữ đó (không chép nguyên văn). Mỗi video tốn thêm ~5–10 giây.
+
+✍️ **Chữ trên thumbnail (hook) bổ trợ tiêu đề**: là một ô riêng trong bảng bóc tách (sửa được). Tool rút sự tò mò của tiêu đề, chọn một từ khóa **có thật trong tiêu đề** (tự kiểm tra, không bịa chi tiết mới), viết cùng ngôn ngữ với tiêu đề. Khi lấy ý tưởng từ thumbnail đối thủ, chữ của họ được dùng lại (dịch sang ngôn ngữ tiêu đề) nếu hợp tiêu đề mới.
+
 Ngoài ra: **Viết lại tiêu đề** (dán tiêu đề hoặc link video bất kỳ, có ô *Từ khóa chính* tùy chọn) và **Lịch sử tiêu đề** (tự lưu, tìm lại được).
 
 💡 Khuôn tiêu đề và DNA thumbnail là 2 kho **độc lập** — bạn có thể lấy tiêu đề theo kênh A và thumbnail theo kênh B cho cùng một ngách.

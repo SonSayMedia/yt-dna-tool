@@ -65,6 +65,11 @@ BƯỚC 3 — QUÉT TỪ KHÓA → TÁI TẠO TIÊU ĐỀ
    - Nhập TỪ KHÓA. Đây là TỪ KHÓA CHÍNH: tiêu đề mới luôn chứa nó trong 50 ký tự đầu.
    - Chọn loại video (dài / short / cả hai), mốc thời gian (7 ngày … 3 năm)
      hoặc chế độ "Trend 48h", số video, ngôn ngữ tiêu đề mới, và khuôn ở "Dự án áp dụng".
+   - (Tùy chọn) Tick "🖼️ Tiêu đề bám theo thumbnail đối thủ": AI nhìn thumbnail + chữ trên ảnh +
+     tiêu đề gốc, hiểu cặp này đang hứa điều gì, rồi viết tiêu đề mới LIÊN QUAN và BỔ TRỢ với
+     ảnh/chữ đó (không chép nguyên văn). Mặc định tắt; bật thì mỗi video tốn thêm ~5–10 giây.
+     Dưới mỗi thumbnail hiện: chữ trên ảnh · ảnh hứa gì · cặp bổ trợ nhau thế nào. Ô tick này
+     cũng có ở mục "Viết lại tiêu đề" (chỉ áp dụng cho dòng dán link video).
    - Bấm "Quét & tái tạo".
    - Mỗi dòng cho: tiêu đề gốc (kèm bản dịch), bóc tách, TIÊU ĐỀ MỚI (kèm bản dịch và
      dòng 🔑 từ khóa: ✅ đủ từ khóa / ⚠️ thiếu → bấm "Tạo lại").
@@ -81,6 +86,12 @@ BƯỚC 4 — TẠO PROMPT THUMBNAIL
                        · Cảm xúc ← Tử huyệt · Thế giới cảnh ← Bối cảnh
    - XEM VÀ SỬA các ô chưa ưng (đặc biệt phần ② Suy ra hình), rồi bấm
      "② Sinh prompt hàng loạt". Muốn bỏ qua bước duyệt: bấm "⚡ Sinh luôn".
+   - CHỮ TRÊN THUMBNAIL (hook) là một ô riêng "③ Chữ trên thumbnail" trong bảng bóc tách: tool
+     rút ra sự tò mò của tiêu đề rồi chọn 1 TỪ KHÓA CÓ THẬT trong tiêu đề để làm hook 2–4 từ
+     (vd tiêu đề "...Bizarre ACCIDENT" → hook "WHAT ACCIDENT?"), KHÔNG bịa chi tiết mới không có
+     trong tiêu đề. Hook luôn cùng ngôn ngữ với tiêu đề. Bạn sửa được; prompt dùng ĐÚNG chữ bạn
+     chốt. Khi tái tạo từ thumbnail đối thủ: nếu chữ của họ hợp với tiêu đề mới thì dùng luôn
+     (tự dịch sang ngôn ngữ tiêu đề), không hợp thì tool tự tạo hook mới.
    - Cảnh BÁM NỘI DUNG TIÊU ĐỀ (tiêu đề hiện đại → cảnh hiện đại). Kênh chỉ giữ:
      phong cách vẽ, màu, bố cục, font chữ và nhân vật cố định.
    - Nhận prompt tiếng Anh theo đúng thứ tự tiêu đề. Chữ trên thumbnail viết CÙNG

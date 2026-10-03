@@ -293,7 +293,38 @@ def _richness_hint_block(thumbnail_dna):
 #   Suy ra:  chu the <- van de ; hanh dong/bieu tuong <- to mo ; cam xuc <- tu huyet ; the gioi canh <- boi canh
 # Nguoi dung duyet/sua 8 truong nay truoc khi sinh prompt.
 # ---------------------------------------------------------------------------
-BREAK_KEYS = ("van_de", "to_mo", "boi_canh", "tu_huyet", "chu_the", "hanh_dong", "cam_xuc", "the_gioi_canh")
+BREAK_KEYS = ("van_de", "to_mo", "boi_canh", "tu_huyet", "chu_the", "hanh_dong", "cam_xuc", "the_gioi_canh", "hook")
+BREAK_EXTRA_KEYS = ("y_tuong_goc", "bo_cuc_tham_chieu", "hook_goc", "hook_ly_do", "hook_nguon", "chu_doi_thu")
+
+# Quy tac HOOK (chu tren thumbnail): phai BO TRO / LIEN QUAN TRUC TIEP voi tieu de, khong bia chi tiet moi.
+# (Loi that: tieu de "...Discovered SILK [The Bizarre ACCIDENT]" nhung hook "DROPPED IN TEA?" - bia chi tiet 'tra'.)
+HOOK_RULE = (
+    "HOOK = cum 2-4 tu IN HOA, viet bang NGON NGU CUA TIEU DE, BO TRO tieu de: chon 1 TU KHOA / cai TO MO dang NAM TRONG "
+    "tieu de roi dong khung lai (cau hoi / canh bao / nhan manh) de tang to mo. HOOK va tieu de phai LIEN QUAN TRUC TIEP: "
+    "nguoi xem doc ca hai phai thay chung noi CUNG MOT chuyen. TUYET DOI KHONG them su kien/vat/chi tiet/dia danh MOI "
+    "khong co trong tieu de (vd tieu de khong nhac 'tra' thi hook khong duoc noi 'tra'), KHONG tiet lo dap an cua tieu de. "
+    "Duoc lap lai 1 tu khoa cua tieu de nhung doi cach goi (vd tieu de '...Bizarre ACCIDENT' -> hook 'WHAT ACCIDENT?' hoac "
+    "'PURE ACCIDENT?'; KHONG chep nguyen ca cum tieu de)."
+)
+
+
+def _hook_grounded(title, goc):
+    """`goc` = tu khoa/cum cua TIEU DE ma hook dua vao. Dat khi it nhat 1 tu (>=3 chu cai, hoac 1 ky tu CJK) cua `goc`
+    nam that su trong tieu de. Chong truong hop hook bia chi tiet khong co trong tieu de."""
+    g, t = _unaccent(goc), _unaccent(title)
+    if not g or not t:
+        return False
+    if g in t:
+        return True
+    twords = set(t.replace("-", " ").split())
+    for w in g.replace("-", " ").split():
+        w = w.strip(".,!?:;\"'()[]{}")
+        if _script_flags(w) & {"cjk", "thai"}:
+            if any(ch in t for ch in w):
+                return True
+        elif len(w) >= 3 and (w in twords or any(w in tw or tw in w for tw in twords if len(tw) >= 4)):
+            return True
+    return False
 TU_HUYET_LABELS = ("Sợ hãi", "Tò mò", "Tham lam", "Cảnh giác")
 
 
@@ -326,7 +357,7 @@ VN_DIACRITIC_RULE = (
     "trong các ô này — dù tiêu đề gốc viết bằng ngôn ngữ nào, các ô vẫn là TIẾNG VIỆT CÓ DẤU."
 )
 VN_TEXT_KEYS = ("van_de", "to_mo", "boi_canh", "chu_the", "hanh_dong", "cam_xuc", "the_gioi_canh",
-                "y_tuong_goc", "bo_cuc_tham_chieu")
+                "y_tuong_goc", "bo_cuc_tham_chieu", "hook_ly_do")
 _VN_MARKS = set("àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ")
 
 
@@ -338,14 +369,15 @@ def _lacks_vn_diacritics(text):
     return not any(c in _VN_MARKS for c in t.lower())
 
 
-def _fix_vn_diacritics(bks):
+def _fix_vn_diacritics(bks, keys=None):
     """Quet cac o boc tach: o nao thieu dau -> nho AI viet lai thanh tieng Viet CO DAU (toi da 2 luot).
     Sua truc tiep tren list dict `bks`; loi mang/AI thi giu nguyen (khong lam hong ca loat)."""
     import json
+    keys = tuple(keys or VN_TEXT_KEYS)
     for _ in range(2):
         bad = []
         for i, b in enumerate(bks):
-            for k in VN_TEXT_KEYS:
+            for k in keys:
                 if _lacks_vn_diacritics(b.get(k)):
                     bad.append({"id": "%d|%s" % (i, k), "text": b[k]})
         if not bad:
@@ -377,7 +409,7 @@ def _fix_vn_diacritics(bks):
             except ValueError:
                 continue
             new = str(r.get("text") or "").strip()
-            if 0 <= i < len(bks) and k in VN_TEXT_KEYS and new and not _lacks_vn_diacritics(new):
+            if 0 <= i < len(bks) and k in keys and new and not _lacks_vn_diacritics(new):
                 bks[i][k] = new
     return bks
 
@@ -402,7 +434,9 @@ def decompose_titles_for_thumb(titles, thumbnail_dna=None):
         "nhu 'ngac nhien'/'to mo'.\n"
         "- THE GIOI CANH <- boi canh: noi/thoi diem xay ra, BAM DUNG NOI DUNG TIEU DE (tieu de hien dai thi canh hien dai; "
         "tieu de lich su thi canh lich su). KHONG mac dinh the gioi dac trung cua kenh.\n"
-        "Moi truong viet NGAN GON (toi da ~14 tu), de doc nhanh, KHONG van hoc thuat, KHONG tom tat dai dong."
+        "- HOOK (chu tren thumbnail) <- khoang trong to mo: " + HOOK_RULE + "\n"
+        "Moi truong viet NGAN GON (toi da ~14 tu), de doc nhanh, KHONG van hoc thuat, KHONG tom tat dai dong. "
+        "RIENG truong `hook` viet bang NGON NGU CUA TIEU DE (khong dich), con `hook_goc` chep NGUYEN tu/cum co that trong tieu de."
         + VN_DIACRITIC_RULE
         + ("\nKENH CO NHAN VAT CO DINH (thiet ke da khoa, KHONG ta lai dau/toc/trang phuc): " + char_lock
            + "\n=> truong chu_the BAT BUOC bat dau bang cum “Nhân vật cố định của kênh” + no dang lam/tuong tac voi gi "
@@ -413,7 +447,9 @@ def decompose_titles_for_thumb(titles, thumbnail_dna=None):
         "Tra ve JSON la MOT MANG, moi phan tu dung cau truc (giu nguyen index):\n"
         '{"index": 0, "ngon_ngu_tieu_de": "ten ngon ngu cua tieu de, vd Spanish",\n'
         ' "van_de": "...", "to_mo": "...", "boi_canh": "...", "tu_huyet": "So hai|To mo|Tham lam|Canh giac",\n'
-        ' "chu_the": "...", "hanh_dong": "...", "cam_xuc": "...", "the_gioi_canh": "..."}'
+        ' "chu_the": "...", "hanh_dong": "...", "cam_xuc": "...", "the_gioi_canh": "...",\n'
+        ' "hook": "2-4 tu IN HOA, NGON NGU CUA TIEU DE", "hook_goc": "tu/cum CO THAT trong tieu de ma hook dua vao",\n'
+        ' "hook_ly_do": "1 cau TIENG VIET CO DAU: hook bo tro tieu de the nao"}'
     )
     out = [None] * len(titles)
     BATCH = 8
@@ -440,7 +476,12 @@ def decompose_titles_for_thumb(titles, thumbnail_dna=None):
                     idx = start + pos
                 if 0 <= idx < len(titles):
                     out[idx] = r
-    return _fix_vn_diacritics([_clean_breakdown(out[i] or {}) for i in range(len(titles))])
+    bks = [_clean_breakdown(out[i] or {}) for i in range(len(titles))]
+    for b in bks:
+        if b.get("hook"):
+            b["hook_nguon"] = "tu_tao"
+    _regen_ungrounded_hooks(titles, bks)
+    return _fix_vn_diacritics(bks)
 
 
 def _clean_breakdown(r):
@@ -452,10 +493,73 @@ def _clean_breakdown(r):
             b[k] = str(r.get(k) or "").strip()
     b["tu_huyet"] = _norm_tu_huyet(r.get("tu_huyet"))
     b["ngon_ngu_tieu_de"] = str(r.get("ngon_ngu_tieu_de") or "").strip()
-    for k in ("y_tuong_goc", "bo_cuc_tham_chieu"):
+    for k in BREAK_EXTRA_KEYS:
         if r.get(k):
             b[k] = str(r.get(k)).strip()
     return b
+
+
+def _regen_ungrounded_hooks(titles, bks):
+    """Hook nao khong bam tu khoa trong TIEU DE (hook_goc khong nam trong tieu de) -> yeu cau AI viet lai 1 lan.
+    Sua truc tiep tren `bks`; loi AI thi giu nguyen."""
+    import json
+    bad = [i for i, b in enumerate(bks) if b.get("hook") and not _hook_grounded(titles[i], b.get("hook_goc"))]
+    if not bad:
+        return bks
+    system = (
+        "Bạn là giám đốc sáng tạo thumbnail YouTube. Với mỗi tiêu đề, hãy viết lại HOOK (chữ trên thumbnail) cho đúng quy tắc, "
+        "vì hook cũ KHÔNG bám tiêu đề (bịa chi tiết không có trong tiêu đề).\nQUY TẮC HOOK:\n" + HOOK_RULE +
+        "\nTrường hook_goc = từ/cụm CÓ THẬT trong tiêu đề mà hook dựa vào (chép nguyên từ tiêu đề). "
+        "hook_ly_do viết TIẾNG VIỆT CÓ DẤU, 1 câu ngắn: hook bổ trợ tiêu đề thế nào."
+    )
+    items = [{"index": i, "title": titles[i], "to_mo": bks[i].get("to_mo", ""), "hook_cu_sai": bks[i].get("hook", "")}
+             for i in bad]
+    user = ("Danh sách (JSON):\n" + json.dumps(items, ensure_ascii=False) +
+            '\n\nTrả về JSON là MỘT MẢNG, mỗi phần tử {"index": n, "hook": "...", "hook_goc": "...", "hook_ly_do": "..."}.')
+    try:
+        res = llm.chat_json(system, user, temperature=0.5, role="analyze")
+    except Exception:
+        return bks
+    if isinstance(res, dict):
+        for key in ("items", "data", "result"):
+            if isinstance(res.get(key), list):
+                res = res[key]
+                break
+    if not isinstance(res, list):
+        return bks
+    for r in res:
+        if not isinstance(r, dict):
+            continue
+        try:
+            i = int(r.get("index"))
+        except (TypeError, ValueError):
+            continue
+        h, g = str(r.get("hook") or "").strip(), str(r.get("hook_goc") or "").strip()
+        if i in bad and h and _hook_grounded(titles[i], g):
+            bks[i]["hook"], bks[i]["hook_goc"] = h, g
+            bks[i]["hook_ly_do"] = str(r.get("hook_ly_do") or "").strip()
+    return bks
+
+
+def read_competitor_pair(image_bytes, title_goc):
+    """NHIN thumbnail doi thu + TIEU DE GOC cua ho -> hieu 'cap' anh/chu/tieu de dang hua dieu gi, de TAI TAO TIEU DE
+    moi van LIEN QUAN & BO TRO voi anh + chu do. Tra ve {chu_tren_thumb, hinh_hua, cap_bo_tro}
+    (hinh_hua, cap_bo_tro = TIENG VIET CO DAU; chu_tren_thumb = nguyen van, de rong neu khong co chu)."""
+    system = (
+        "Bạn là chuyên gia thumbnail & tiêu đề YouTube. Bạn xem THUMBNAIL của một video đối thủ nhiều view cùng TIÊU ĐỀ GỐC "
+        "của nó. Hãy hiểu CẶP (ảnh + chữ trên ảnh + tiêu đề) đang HỨA điều gì với người xem và chúng BỔ TRỢ nhau ra sao.\n"
+        "Trả về JSON: {\"chu_tren_thumb\": \"chữ in trên ảnh, chép CHÍNH XÁC nguyên văn (để rỗng nếu không có chữ)\", "
+        "\"hinh_hua\": \"1 câu: ảnh cho người xem thấy/gợi điều gì (chủ thể, hành động, biểu tượng gây tò mò)\", "
+        "\"cap_bo_tro\": \"1 câu: chữ trên ảnh + ảnh bổ trợ tiêu đề gốc thế nào (khoảng trống tò mò chung của cả cặp)\"}\n"
+        "hinh_hua và cap_bo_tro viết TIẾNG VIỆT CÓ DẤU đầy đủ, ngắn gọn (tối đa ~25 từ mỗi câu). "
+        "Không mô tả khuôn mặt người thật."
+    )
+    r = llm.chat_json(system, "TIÊU ĐỀ GỐC: " + str(title_goc or ""), temperature=0.2, vision_images=[image_bytes])
+    r = r if isinstance(r, dict) else {}
+    out = {"chu_tren_thumb": str(r.get("chu_tren_thumb") or "").strip(),
+           "hinh_hua": str(r.get("hinh_hua") or "").strip(),
+           "cap_bo_tro": str(r.get("cap_bo_tro") or "").strip()}
+    return _fix_vn_diacritics([out], keys=("hinh_hua", "cap_bo_tro"))[0]
 
 
 def breakdown_from_reference_thumb(image_bytes, new_title, thumbnail_dna=None):
@@ -481,9 +585,14 @@ def breakdown_from_reference_thumb(image_bytes, new_title, thumbnail_dna=None):
         "Trong chu_the / hanh_dong / the_gioi_canh, GHI RO vi tri & ty le theo bo cuc tham chieu "
         "(vd 'o ben trai, chiem khoang 40% khung').\n"
         "Neu thumbnail doi thu khong lien quan tieu de moi, van lay BO CUC cua no nhung noi dung bam tieu de moi.\n"
-        "AN TOAN (BAT BUOC): TUYET DOI KHONG: chep chu/van ban tren anh; dung lai nhan vat, tac pham, logo, thiet ke "
-        "rieng cua doi thu; mo ta guong mat hay dac diem nhan dang cua NGUOI THAT (neu anh co nguoi that thi doi thanh "
-        "nhan vat cua kenh nguoi dung hoac mot nhan vat chung chung).\n"
+        "CHU TREN THUMBNAIL DOI THU (HOOK): doc CHINH XAC chu in tren anh (chu_doi_thu; de rong neu khong co chu). "
+        "Neu chu do LIEN QUAN va BO TRO duoc cho TIEU DE MOI (cung noi mot chuyen, khong bia chi tiet khong co trong "
+        "tieu de moi) thi DUNG LUON lam `hook` (neu khac ngon ngu tieu de moi thi DICH sang NGON NGU CUA TIEU DE MOI), "
+        "chu_doi_thu_dung_duoc=true, hook_nguon=\"doi_thu\". Neu KHONG hop thi TU TAO hook moi dung quy tac sau, "
+        "chu_doi_thu_dung_duoc=false, hook_nguon=\"tu_tao\". QUY TAC HOOK: " + HOOK_RULE + "\n"
+        "AN TOAN (BAT BUOC): chu tren anh doi thu CHI duoc dung cho truong `hook`, KHONG mo ta chu vao cac o khac. "
+        "TUYET DOI KHONG: dung lai nhan vat, tac pham, logo, thiet ke rieng cua doi thu; mo ta guong mat hay dac diem "
+        "nhan vat cua NGUOI THAT (neu anh co nguoi that thi doi thanh nhan vat cua kenh nguoi dung hoac mot nhan vat chung chung).\n"
         "Moi truong viet NGAN GON (toi da ~25 tu cho bo_cuc_tham_chieu, ~16 tu cho cac truong khac), de doc nhanh."
         + VN_DIACRITIC_RULE
         + ("\nKENH NGUOI DUNG CO NHAN VAT CO DINH (thiet ke da khoa, KHONG ta lai): " + char_lock
@@ -497,10 +606,21 @@ def breakdown_from_reference_thumb(image_bytes, new_title, thumbnail_dna=None):
         ' "bo_cuc_tham_chieu": "BO CUC cua thumbnail doi thu: vi tri & ty le chu the, vat phu, vung chu, goc may, lop chieu sau",\n'
         ' "ngon_ngu_tieu_de": "ten ngon ngu cua tieu de moi, vd Spanish",\n'
         ' "van_de": "...", "to_mo": "...", "boi_canh": "...", "tu_huyet": "So hai|To mo|Tham lam|Canh giac",\n'
-        ' "chu_the": "...", "hanh_dong": "...", "cam_xuc": "...", "the_gioi_canh": "..."}'
+        ' "chu_the": "...", "hanh_dong": "...", "cam_xuc": "...", "the_gioi_canh": "...",\n'
+        ' "chu_doi_thu": "chu in tren thumbnail doi thu (nguyen van, de rong neu khong co)",\n'
+        ' "chu_doi_thu_dung_duoc": true/false, "hook_nguon": "doi_thu|tu_tao",\n'
+        ' "hook": "2-4 tu IN HOA, NGON NGU CUA TIEU DE MOI", "hook_goc": "tu/cum CO THAT trong tieu de moi ma hook dua vao",\n'
+        ' "hook_ly_do": "1 cau TIENG VIET CO DAU: hook bo tro tieu de moi the nao"}'
     )
     r = llm.chat_json(system, user, temperature=0.5, vision_images=[image_bytes])
     bk = _clean_breakdown(r if isinstance(r, dict) else {})
+    if bk.get("hook_nguon") not in ("doi_thu", "tu_tao"):
+        bk["hook_nguon"] = "tu_tao"
+    # hook phai bam TIEU DE MOI; hook lay tu doi thu thi hook_goc cung phai nam trong tieu de moi
+    hook_truoc = bk.get("hook")
+    _regen_ungrounded_hooks([new_title], [bk])
+    if bk.get("hook") != hook_truoc or not _hook_grounded(new_title, bk.get("hook_goc")):
+        bk["hook_nguon"] = "tu_tao"      # da phai viet lai (hook doi thu khong bam tieu de moi)
     return _fix_vn_diacritics([bk])[0]
 
 
@@ -524,7 +644,12 @@ def _breakdown_block(bk):
         "=> Moi o noi dung (chu the, vat, bieu tuong, nen) phai dat dung VI TRI & TY LE theo bo cuc tren; "
         "NOI DUNG van la cua tieu de moi; phong cach/mau/font/nhan vat van theo DNA kenh.\n" % layout
         if layout else "")
-    return layout_line + (
+    hook = str(bk.get("hook") or "").strip()
+    hook_line = (
+        "CHU TREN THUMBNAIL (o HOOK) DA DUOC NGUOI DUNG DUYET: \"%s\" => o HOOK PHAI la CHINH XAC cum nay "
+        "(giu nguyen ngon ngu & chu cai, KHONG doi, KHONG dich lai, KHONG them bot).\n" % hook
+        if hook else "")
+    return layout_line + hook_line + (
         "PHAN TICH TIEU DE DA DUOC NGUOI DUNG DUYET - BAT BUOC BAM SAT, KHONG tu y doi y:\n"
         "- Van de: %s\n- Khoang trong to mo: %s\n- Boi canh: %s\n- Tu huyet: %s\n"
         "=> HINH CAN VE:\n- Chu the: %s\n- Hanh dong/Bieu tuong: %s\n- Cam xuc nhan vat: %s\n- The gioi canh: %s\n"
@@ -672,8 +797,8 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         u = s.upper()
         if u == "HOOK":  # chu TREN THUMB: cung ngon ngu voi tieu de (KHONG ep tieng Anh)
             return ('  "%s": "cum 2-4 tu IN HOA viet bang NGON NGU CUA TIEU DE (dung ngon ngu o truong ngon_ngu_tieu_de, '
-                    'KHONG dich sang tieng Anh), BO TRO tieu de (tao khoang trong to mo RIENG), '
-                    'TUYET DOI KHONG lap lai nguyen tu/cum tu da co san trong tieu de",' % s)
+                    'KHONG dich sang tieng Anh), BO TRO va LIEN QUAN TRUC TIEP tieu de: dua vao 1 tu khoa/cai to mo CO TRONG '
+                    'tieu de, KHONG bia chi tiet moi",' % s)
         if u == "SCENE":  # the gioi canh: BAM NOI DUNG TIEU DE
             return ('  "%s": "gia tri TIENG ANH: THE GIOI/BOI CANH BAM NOI DUNG TIEU DE (khong mac dinh the gioi cua kenh), '
                     'cu the nhung ngan",' % s)
@@ -692,9 +817,9 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         "NGUYEN TAC BO TRO (1+1=3): thumbnail va TIEU DE la 1 CAP, khong phai 1 ban sao cua nhau. "
         "Hinh anh (chu the/bieu tuong/hanh dong) TRUYEN CAM XUC va goi mo 1 GOC RIENG cua tieu de "
         "(vd chi tiet gay to mo, hau qua chua noi, phan ung cua nhan vat), tieu de van giu vai tro cung "
-        "cap boi canh/tu khoa chinh. TUYET DOI KHONG ve lai dung nghia den cua tieu de va KHONG de HOOK "
-        "nhac lai nguyen van chu trong tieu de — muc tieu la nguoi xem doc tieu de + nhin hinh se TO MO "
-        "HON la chi doc rieng tieu de.\n"
+        "cap boi canh/tu khoa chinh. TUYET DOI KHONG ve lai dung nghia den cua tieu de — muc tieu la nguoi xem "
+        "doc tieu de + nhin hinh se TO MO HON la chi doc rieng tieu de.\n"
+        + HOOK_RULE + "\n"
         + CAST_ACTION_GRAMMAR + "\n" + WORLD_RULE
         + ("\nTHIET KE NHAN VAT (dau/toc/trang phuc) DA KHOA CUNG, se duoc chen tu dong vao cuoi prompt — "
            "KHONG mo ta lai dau/toc/trang phuc trong cac o trong, chi dien HANH DONG/TU THE/BIEU CAM cua "
@@ -713,7 +838,10 @@ def _prompt_locked_composition(title, comp_lock, font_lock, char_lock="", richne
         "Cac o trong viet TIENG ANH, RIENG o HOOK viet bang ngon ngu cua TIEU DE; 3 field cuoi viet TIENG VIET CO DAU."
     )
     r = llm.chat_json(system, user, temperature=0.6)
-    if hook_key and not _hook_matches_title_script(title, str(r.get(hook_key) or "")):
+    approved_hook = str((breakdown or {}).get("hook") or "").strip()
+    if hook_key and approved_hook:      # nguoi dung da duyet/sua hook o buoc boc tach -> dung CHINH XAC, khong de AI doi
+        r[hook_key] = approved_hook
+    elif hook_key and not _hook_matches_title_script(title, str(r.get(hook_key) or "")):
         r = llm.chat_json(system, user + _hook_lang_retry_note(title), temperature=0.6)
     p = comp_lock
     hook = ""
@@ -776,9 +904,7 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna, breakdown=None):
            "=> BAN KHONG DUOC mo ta lai dau/toc/trang phuc nhan vat; CHI mo ta HANH DONG/TU THE/BIEU CAM cua "
            "nhan vat do sao cho hop tieu de.\n" if char_lock else "")
         + "Hay SUY NGHI KY nhu 1 chuyen gia: boc tach tieu de -> chon PHUONG AN chu the + boi canh MANH NHAT "
-        "(hut click, dung tam ly nguoi xem, hop chu de) -> viet 1 CUM HOOK 2-4 tu IN HOA sac ben, "
-        "bang NGON NGU CUA TIEU DE (khong dich sang tieng Anh), "
-        "bo tro (khong lap y het) tieu de.\n"
+        "(hut click, dung tam ly nguoi xem, hop chu de) -> viet 1 CUM HOOK. " + HOOK_RULE + "\n"
         + CAST_ACTION_GRAMMAR + "\n"
         + "BIEU CAM: neu DNA co 'nhan_vat_dna.cong_thuc_bieu_cam', BAT BUOC dung dung CONG THUC do (mo ta CU THE "
         "mat/may/mieng theo nhom cam xuc GAN NHAT voi tieu de), TUYET DOI KHONG dung 1 tinh tu chung chung nhu "
@@ -790,8 +916,8 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna, breakdown=None):
            else "Kenh nay KHONG dat chu -> chua khoang trong sach, KHONG dung [[FONT]].\n")
     )
     hook_line = ('  "ngon_ngu_tieu_de": "ten ngon ngu cua TIEU DE (vd Spanish, English, Vietnamese, Japanese)",\n'
-                 '  "text_tren_thumb": "cum HOOK 2-4 tu IN HOA suy ra tu tieu de, viet bang NGON NGU CUA TIEU DE '
-                 '(khong dich sang tieng Anh)",\n'
+                 '  "text_tren_thumb": "cum HOOK 2-4 tu IN HOA, BO TRO va LIEN QUAN TRUC TIEP tieu de (dua vao tu khoa '
+                 'CO TRONG tieu de, khong bia chi tiet moi), viet bang NGON NGU CUA TIEU DE (khong dich sang tieng Anh)",\n'
                  if co_chu else '  "text_tren_thumb": "",\n')
     prompt_hint = (
         'prompt TIENG ANH: chu the + boi canh (theo tieu de) + bang mau/anh sang/bo cuc/ty le %/vi tri theo DNA. '
@@ -820,7 +946,10 @@ def thumbnail_prompt_from_dna(title, thumbnail_dna, breakdown=None):
         "thumbnail_prompt_en viet TIENG ANH."
     )
     result = llm.chat_json(system, user, temperature=0.6)
-    if co_chu and not _hook_matches_title_script(title, str(result.get("text_tren_thumb") or "")):
+    approved_hook = str((breakdown or {}).get("hook") or "").strip()
+    if co_chu and approved_hook:        # hook da duyet o buoc boc tach -> dung CHINH XAC
+        result["text_tren_thumb"] = approved_hook
+    elif co_chu and not _hook_matches_title_script(title, str(result.get("text_tren_thumb") or "")):
         result = llm.chat_json(system, user + _hook_lang_retry_note(title), temperature=0.6)
 
     # CHEN khoi chu KHOA CUNG y nguyen -> chu giong het moi lan (khong phu thuoc model che lai)

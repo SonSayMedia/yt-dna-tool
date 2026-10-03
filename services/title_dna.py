@@ -208,6 +208,24 @@ def _kw_fields(title, main_keyword, r, channel_kws):
     }
 
 
+# Che do "TIEU DE BAM THEO THUMBNAIL DOI THU": AI da NHIN thumbnail -> hieu cap (anh + chu + tieu de) dang hua dieu gi.
+THUMB_PAIR_RULE = (
+    "MOI tieu de goc co the kem THUMBNAIL DOI THU da duoc doc (truong `thumbnail`: chu_tren_anh, hinh_hua, cap_bo_tro). "
+    "Hay tai tao tieu de MOI sao cho van LIEN QUAN va BO TRO voi thumbnail do: giu cung LOI HUA / khoang trong to mo ma "
+    "anh + chu tren anh dang goi, de nguoi xem thay thumbnail va tieu de moi thi thay chung noi CUNG MOT chuyen. "
+    "KHONG chep nguyen van tieu de goc hay chu tren anh; KHONG them chi tiet khong co trong ca tieu de goc lan thumbnail. "
+    "Trong ly_do_tai_tao noi ro tieu de moi bam thumbnail the nao."
+)
+
+
+def _thumb_ctx_of(v):
+    """Rut {chu_tren_anh, hinh_hua, cap_bo_tro} tu video (da gan 'thumb_ctx'); None neu khong co thong tin."""
+    c = (v or {}).get("thumb_ctx") or {}
+    d = {"chu_tren_anh": c.get("chu_tren_thumb") or c.get("chu_tren_anh") or "",
+         "hinh_hua": c.get("hinh_hua") or "", "cap_bo_tro": c.get("cap_bo_tro") or ""}
+    return d if any(d.values()) else None
+
+
 def scan_decompose_recreate(videos, profile, output_language, main_keyword=None):
     """
     videos: list dict co 'title','views','url','channelTitle'
@@ -255,6 +273,7 @@ def scan_decompose_recreate(videos, profile, output_language, main_keyword=None)
         "3) GIAI THICH (ly_do_tai_tao): giu lai van de gi, khoang trong to mo gi, bam khung nao, vi sao de hut click.\n"
         + KHUNG_CONG_THUC + "\n" + khung_block + profile_txt
         + "\n" + _keyword_rules(main_keyword, ch_kws, lang)
+        + (("\n" + THUMB_PAIR_RULE) if any(_thumb_ctx_of(v) for v in videos) else "")
         + "\nTIEU DE TAI TAO viet bang: " + lang
         + "\nBAT BUOC: IN HOA TOAN BO 1-2 tu khoa cam xuc/van de manh nhat de tao diem nhan "
         "(vi du: THAO TUNG, NOI DOI, HUY HOAI, PHAN BOI, BIEN MAT). TUYET DOI KHONG in hoa toan bo ca tieu de."
@@ -288,7 +307,13 @@ def scan_decompose_recreate(videos, profile, output_language, main_keyword=None)
     by_index = {}
     for start in range(0, len(videos), BATCH):
         chunk = videos[start:start + BATCH]
-        items = [{"index": start + j, "title": v["title"]} for j, v in enumerate(chunk)]
+        items = []
+        for j, v in enumerate(chunk):
+            it = {"index": start + j, "title": v["title"]}
+            tc = _thumb_ctx_of(v)
+            if tc:
+                it["thumbnail"] = tc
+            items.append(it)
         user = ("Danh sach tieu de goc (JSON):\n"
                 + json.dumps(items, ensure_ascii=False) + "\n\n" + schema)
         try:
@@ -338,6 +363,7 @@ def scan_decompose_recreate(videos, profile, output_language, main_keyword=None)
             "so_ky_tu": r.get("so_ky_tu", len(t)),
             "dich_viet": r.get("dich_viet", ""),
             "ly_do_tai_tao": r.get("ly_do_tai_tao", ""),
+            "thumb_ctx": _thumb_ctx_of(v),     # None neu khong bat che do bam thumbnail
             **_kw_fields(t, main_keyword, r, ch_kws),
         })
 
@@ -348,7 +374,7 @@ def scan_decompose_recreate(videos, profile, output_language, main_keyword=None)
             fixed += 1
             try:
                 fx = recreate_one(row["title_goc"], profile, output_language, row["khung_index"],
-                                  main_keyword=main_keyword, attempts=1)
+                                  main_keyword=main_keyword, attempts=1, thumb_ctx=row.get("thumb_ctx"))
             except Exception:
                 continue
             if fx.get("tieu_de_tai_tao") and fx.get("kw_ok"):
@@ -359,7 +385,7 @@ def scan_decompose_recreate(videos, profile, output_language, main_keyword=None)
     return out
 
 
-def recreate_one(title_goc, profile, output_language, khung_index, main_keyword=None, attempts=2):
+def recreate_one(title_goc, profile, output_language, khung_index, main_keyword=None, attempts=2, thumb_ctx=None):
     """
     Tao lai 1 tieu de theo 1 KHUNG XUONG cu the (cho nut 'Tao lai' xoay vong).
     khung_index: so thu tu khung (0-based). Neu khong hop le / khong co khuon -> cong thuc chung.
@@ -389,12 +415,15 @@ def recreate_one(title_goc, profile, output_language, khung_index, main_keyword=
         "GIU nguyen VAN DE + KHOANG TRONG TO MO cua ban goc, KHONG dung lai toan bo cau goc.\n"
         + khung_txt + KHUNG_CONG_THUC + "\n" + profile_txt
         + "\n" + _keyword_rules(main_keyword, ch_kws, lang)
+        + (("\n" + THUMB_PAIR_RULE) if thumb_ctx else "")
         + "\nTIEU DE TAI TAO viet bang: " + lang
         + "\nBAT BUOC: IN HOA TOAN BO 1-2 tu khoa cam xuc/van de manh nhat de tao diem nhan. "
         "TUYET DOI KHONG in hoa toan bo ca tieu de."
     )
     user = (
-        'Tieu de goc: "' + title_goc + '"\n\n'
+        'Tieu de goc: "' + title_goc + '"\n'
+        + (("Thumbnail doi thu (JSON): " + json.dumps(thumb_ctx, ensure_ascii=False) + "\n") if thumb_ctx else "")
+        + '\n'
         'Tra ve JSON: {"tu_khoa_len_view": "...", "tu_khoa_chinh": "...", "tu_khoa_trong_tieu_de": "...", '
         '"tu_khoa_kenh": "...", "tieu_de_tai_tao": "...", "so_ky_tu": <do dai>, '
         '"dich_viet": "ban dich TIENG VIET CO DAU (neu da tieng Viet thi y nguyen)"}'

@@ -107,6 +107,31 @@ def api_delete_profile():
 
 # ---------------- Khoi B: quet tu khoa + tai tao ----------------
 
+def _attach_thumb_context(videos):
+    """Che do 'tieu de BAM THEO thumbnail doi thu': voi moi video co anh, AI NHIN thumbnail + tieu de goc
+    (3 luong song song) roi gan v['thumb_ctx']. Video nao loi/khong co anh thi bo qua (van tai tao binh thuong).
+    Tra ve (so video doc duoc, so video loi)."""
+    import requests as _rq
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(v):
+        url = (v.get("thumbnail") or "").strip()
+        if not url.startswith(("http://", "https://")):
+            return None
+        try:
+            rimg = _rq.get(url, timeout=30)
+            if rimg.status_code != 200 or not rimg.content:
+                return False
+            v["thumb_ctx"] = image_dna.read_competitor_pair(rimg.content, v.get("title", ""))
+            return True
+        except Exception:  # noqa
+            return False
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        res = list(ex.map(one, videos))
+    return sum(1 for r in res if r is True), sum(1 for r in res if r is False)
+
+
 @app.route("/api/scan", methods=["POST"])
 def api_scan():
     try:
@@ -171,12 +196,19 @@ def api_scan():
 
         profile = _profile_with_keywords(profile_name)
 
+        thumb_note = ""
+        if data.get("thumb_aware"):
+            n_ok, n_bad = _attach_thumb_context(videos)
+            thumb_note = "Tiêu đề bám thumbnail đối thủ: đọc được %d ảnh%s." % (
+                n_ok, (", %d ảnh lỗi (các dòng đó tái tạo bình thường)" % n_bad) if n_bad else "")
+
         # O Quet tu khoa: tu khoa anh go de quet CHINH LA tu khoa chinh cua tieu de moi
         rows = title_dna.scan_decompose_recreate(videos, profile, output_language, main_keyword=keyword)
         for r in rows:
             r["da_dung"] = r.get("video_id") in used_all   # chi co y nghia khi KHONG an video da dung
         return jsonify({
             "ok": True,
+            "thumb_note": thumb_note,
             "rows": rows,
             "used_count": len(used_all),
             "keyword": keyword,
@@ -236,6 +268,11 @@ def api_rewrite_titles():
             return jsonify({"ok": True, "rows": [], "note": "; ".join(notes) or "Khong co tieu de hop le."})
 
         profile = _profile_with_keywords(profile_name)
+
+        if data.get("thumb_aware"):   # chi video dan LINK moi co thumbnail
+            n_ok, n_bad = _attach_thumb_context(videos)
+            notes.append("Tiêu đề bám thumbnail đối thủ: đọc được %d ảnh%s." % (
+                n_ok, (", %d ảnh lỗi" % n_bad) if n_bad else ""))
 
         rows = title_dna.scan_decompose_recreate(videos, profile, output_language, main_keyword=main_keyword)
 
@@ -303,7 +340,9 @@ def api_recreate_one():
         profile_name = data.get("profile_name") or None
         profile = _profile_with_keywords(profile_name)
         main_keyword = (data.get("main_keyword") or "").strip() or None
-        out = title_dna.recreate_one(title_goc, profile, output_language, khung_index, main_keyword=main_keyword)
+        tc = data.get("thumb_ctx") if isinstance(data.get("thumb_ctx"), dict) else None   # che do bam thumbnail doi thu
+        out = title_dna.recreate_one(title_goc, profile, output_language, khung_index,
+                                     main_keyword=main_keyword, thumb_ctx=tc)
         return jsonify({"ok": True, **out})
     except Exception as e:  # noqa
         return _err(e)

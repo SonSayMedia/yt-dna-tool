@@ -177,6 +177,9 @@
           <label class="optlabel"><input type="checkbox" id="hideSeen" class="chk"> Ẩn cả video đã từng quét (từ khóa này)</label>
           <button id="btnResetSeen" class="ghost" style="padding:4px 10px;font-size:12px">↺ Đặt lại lịch sử quét từ khóa này</button>
         </div>
+        <div class="row" style="margin-top:8px;align-items:center">
+          <label class="optlabel" title="AI nhìn thumbnail + tiêu đề gốc của đối thủ, hiểu cặp ảnh/chữ/tiêu đề đang hứa điều gì, rồi viết tiêu đề mới LIÊN QUAN và BỔ TRỢ với ảnh/chữ đó. Tốn thêm ~5–10 giây mỗi video."><input type="checkbox" id="thumbAware" class="chk"> 🖼️ Tiêu đề bám theo <b>thumbnail đối thủ</b> <span class="muted" style="font-weight:400">(AI nhìn ảnh + chữ trên ảnh · +5–10 giây/video)</span></label>
+        </div>
         <div class="row" style="margin-top:8px">
           <button id="btnIdeas" class="ghost">💡 Gợi ý thêm từ khóa (nghiên cứu như YouTube)</button>
         </div>
@@ -201,6 +204,7 @@
             <input id="rwKeyword" style="width:100%" placeholder="VD: Ancient Humans"></div>
           <button id="btnRewrite">✍️ Viết lại theo DNA</button>
         </div>
+        <label class="optlabel" style="margin-top:8px" title="Chỉ áp dụng cho dòng dán LINK video (có thumbnail). Tốn thêm ~5–10 giây mỗi video."><input type="checkbox" id="rwThumbAware" class="chk"> 🖼️ Tiêu đề bám theo <b>thumbnail đối thủ</b> <span class="muted" style="font-weight:400">(chỉ dòng dán link · AI nhìn ảnh + chữ trên ảnh)</span></label>
         <label style="display:block;margin-top:8px">Tiêu đề / link YouTube — mỗi dòng 1 cái</label>
         <textarea id="rwInputs" style="width:100%;min-height:120px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font:13px/1.6 system-ui;resize:vertical" placeholder="Cách Nhận Biết Người Nói Dối Trong 3 Giây&#10;https://www.youtube.com/watch?v=xxxxxxxxxxx&#10;5 Dấu Hiệu Bạn Đang Bị Thao Túng"></textarea>
         <div id="rwNote" class="muted" style="margin-top:6px"></div>
@@ -560,7 +564,7 @@ async function ttRegen(btn){
   btn.disabled=true; const old=btn.textContent; btn.textContent='…';
   try{
     const mainKw=(isRw?window.__rwMainKw:window.__scanMainKw)||'';
-    const r=await api('/api/recreate-one',{title_goc:row.title_goc, profile_name:profile||'', output_language:lang||'vi', khung_index:nextKi, main_keyword:mainKw});
+    const r=await api('/api/recreate-one',{title_goc:row.title_goc, profile_name:profile||'', output_language:lang||'vi', khung_index:nextKi, main_keyword:mainKw, thumb_ctx:row.thumb_ctx||undefined});
     if(r.ok && r.tieu_de_tai_tao){
       const ta=vb.querySelector('.ttedit'); ta.value=r.tieu_de_tai_tao; ttCount(ta);
       vb.dataset.ki=r.khung_index;
@@ -920,7 +924,7 @@ $('#btnRewrite').onclick=async()=>{
   const pg=makeProgress($('#rwOut'),'Đang bóc tách & viết lại theo DNA');
   try{
     const mainKw=$('#rwKeyword').value.trim();
-    const r=await api('/api/rewrite-titles',{inputs,profile_name:$('#rwProfile').value,output_language:$('#rwLang').value,main_keyword:mainKw});
+    const r=await api('/api/rewrite-titles',{inputs,profile_name:$('#rwProfile').value,output_language:$('#rwLang').value,main_keyword:mainKw,thumb_aware:$('#rwThumbAware').checked});
     pg.stop();
     if(!r.ok){$('#rwOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
     else{
@@ -1041,7 +1045,17 @@ function scanThumbHtml(x, idx, scope){
     'style="display:block;width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;border:1px solid var(--line)"></a>'+
     (idx==null?'':('<button class="ghost" style="margin-top:6px;padding:3px 8px;font-size:12px;width:150px;background:#3a1f4d;border-color:#562c70" '+
       'data-i="'+idx+'" data-scope="'+scope+'" onclick="thumbRecreate(this)" '+
-      'title="AI nhìn thumbnail này, lấy Ý TƯỞNG rồi vẽ lại cho tiêu đề mới theo DNA thumbnail của anh (không chép chữ/nhân vật của đối thủ)">🎨 Tái tạo theo DNA</button>'));
+      'title="AI nhìn thumbnail này, lấy Ý TƯỞNG rồi vẽ lại cho tiêu đề mới theo DNA thumbnail của anh (không chép chữ/nhân vật của đối thủ)">🎨 Tái tạo theo DNA</button>'))+
+    scanThumbCtxHtml(x);
+}
+// Che do "tieu de bam theo thumbnail doi thu": hien thong tin AI doc duoc tu anh (chu tren anh / anh hua gi / cap bo tro)
+function scanThumbCtxHtml(x){
+  const c=x.thumb_ctx; if(!c) return '';
+  const chu=c.chu_tren_anh||c.chu_tren_thumb||'';
+  return '<div class="muted" style="font-size:11px;line-height:1.45;margin-top:6px;max-width:150px;white-space:normal;word-break:break-word">'+
+    (chu?('🔤 Chữ trên ảnh: <b>'+esc(chu)+'</b><br>'):'')+
+    (c.hinh_hua?('👁️ Ảnh hứa: '+esc(c.hinh_hua)+'<br>'):'')+
+    (c.cap_bo_tro?('🤝 '+esc(c.cap_bo_tro)):'')+'</div>';
 }
 // Nut "Tai tao theo DNA" duoi thumbnail doi thu: AI NHIN anh -> lay y tuong -> dien san o boc tach cho TIEU DE MOI
 // -> nhay sang "Tieu de -> Prompt Thumbnail" (tao don) de anh sua roi moi sinh prompt theo khoa font/bo cuc/nhan vat.
@@ -1084,7 +1098,7 @@ $('#btnScan').onclick=async()=>{
     const r=await api('/api/scan',{keyword:kw,mode:$('#mode').value,window:$('#window').value,
       count:$('#count').value,output_language:$('#outLang').value,profile_name:$('#profileSel').value,
       video_type:$('#videoType').value,
-      hide_used:$('#hideUsed').checked,hide_seen:$('#hideSeen').checked});
+      hide_used:$('#hideUsed').checked,hide_seen:$('#hideSeen').checked,thumb_aware:$('#thumbAware').checked});
     pg.stop();
     if(!r.ok){$('#scanOut').innerHTML='<p class="err">'+esc(r.error)+'</p>';}
     else{
@@ -1096,7 +1110,7 @@ $('#btnScan').onclick=async()=>{
       kwinfo+=' · 🔑 tiêu đề mới bắt buộc chứa từ khóa này';
       if(r.used_count>0 && r.hide_used) kwinfo+=' · 🙈 đang ẩn '+r.used_count+' video đã đánh dấu "Sử dụng" (bỏ tick "Ẩn video đã dùng" rồi quét lại để xem và gỡ)';
       else if(r.used_count>0) kwinfo+=' · ✔ '+r.used_count+' video đã dùng được làm mờ — bấm nút xanh để bỏ đánh dấu';
-      $('#scanNote').textContent=kwinfo+' · Thị trường: '+(mk.relevance_language||'?')+'/'+(mk.region_code||'?')+' · Chế độ: '+(r.mode||'')+' · Mốc: '+(r.window||'')+(r.note?(' · '+r.note):'');
+      $('#scanNote').textContent=kwinfo+' · Thị trường: '+(mk.relevance_language||'?')+'/'+(mk.region_code||'?')+' · Chế độ: '+(r.mode||'')+' · Mốc: '+(r.window||'')+(r.note?(' · '+r.note):'')+(r.thumb_note?(' · 🖼️ '+r.thumb_note):'');
       if(!r.rows||!r.rows.length){$('#scanOut').innerHTML=khuonStructHtml(r.khuon, r.khuon_name, false)+'<p class="muted">'+(r.note?esc(r.note):'Không có kết quả.')+'</p>';}
       else{
         let rows='';
@@ -1196,7 +1210,15 @@ function bkBlockHtml(title, bk, idx, total, refUrl, refInfo){
     '<div class="bkgrid">'+BK_FORMULA.map(f=>bkFieldHtml(f,bk[f[0]])).join('')+'</div>'+
     '<div class="muted" style="margin:8px 0 3px">② Suy ra hình thumbnail <b>(anh sửa được trước khi sinh)</b></div>'+
     '<div class="bkgrid">'+BK_VISUAL.map(f=>bkFieldHtml(f,bk[f[0]])).join('')+'</div>'+
-    (bk.bo_cuc_tham_chieu!==undefined&&refUrl?('<div class="bkf" style="margin-top:8px"><label>③ Bố cục thumbnail đối thủ <span class="muted" style="font-weight:400">'+
+    '<div class="bkf" style="margin-top:8px"><label>③ Chữ trên thumbnail (hook) <span class="muted" style="font-weight:400">'+
+      '← bổ trợ tiêu đề · viết cùng ngôn ngữ với tiêu đề'+(bk.ngon_ngu_tieu_de?(' ('+esc(bk.ngon_ngu_tieu_de)+')'):'')+' · anh sửa được, prompt sẽ dùng ĐÚNG chữ này</span></label>'+
+      '<input data-k="hook" style="width:100%;font-weight:600" value="'+esc(bk.hook||'')+'" placeholder="2–4 từ IN HOA bám tiêu đề">'+
+      ((bk.hook_ly_do||bk.hook_goc||bk.hook_nguon)?('<div class="muted" style="font-size:12px;margin-top:3px">'+
+        (bk.hook_nguon==='doi_thu'?'♻️ <b>Lấy từ chữ thumbnail đối thủ</b>'+(bk.chu_doi_thu?(' (“'+esc(bk.chu_doi_thu)+'”)'):'')+' — đã đổi sang ngôn ngữ tiêu đề. ':
+          (bk.hook_nguon==='tu_tao'?'✍️ <b>Tự tạo từ sự tò mò của tiêu đề</b>. ':''))+
+        (bk.hook_goc?('Bám từ khóa: <b>'+esc(bk.hook_goc)+'</b>. '):'')+(bk.hook_ly_do?esc(bk.hook_ly_do):'')+'</div>'):'')+
+    '</div>'+
+    (bk.bo_cuc_tham_chieu!==undefined&&refUrl?('<div class="bkf" style="margin-top:8px"><label>④ Bố cục thumbnail đối thủ <span class="muted" style="font-weight:400">'+
       '← sẽ vẽ lại theo đúng bố cục này (vị trí · tỷ lệ · góc máy · vùng chữ); xóa trống nếu muốn dùng bố cục khóa của kênh</span></label>'+
       '<textarea data-k="bo_cuc_tham_chieu" rows="2">'+esc(bk.bo_cuc_tham_chieu||'')+'</textarea></div>'):'')+
     '</div>';
