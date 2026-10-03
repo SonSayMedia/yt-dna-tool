@@ -495,6 +495,77 @@ def api_thumb_from_title():
         return _err(e)
 
 
+@app.route("/api/thumb-breakdown", methods=["POST"])
+def api_thumb_breakdown():
+    """Buoc 1 cua tao thumbnail: BOC TACH tieu de theo cong thuc (van de / to mo / boi canh / tu huyet)
+    roi suy ra hinh (chu the / hanh dong / cam xuc / the gioi canh). Nguoi dung duyet/sua truoc khi sinh prompt."""
+    try:
+        data = request.get_json(force=True)
+        titles = [str(t).strip() for t in (data.get("titles") or []) if str(t).strip()]
+        if not titles:
+            raise RuntimeError("Hay nhap it nhat 1 tieu de.")
+        if len(titles) > 60:
+            raise RuntimeError("Toi da 60 tieu de moi lan boc tach.")
+        thumb_dna = None
+        name = (data.get("name") or "").strip()
+        if name:
+            d = store.get_dna(name, "ai")
+            if d:
+                thumb_dna = d["dna"].get("thumbnail_dna")
+        bks = image_dna.decompose_titles_for_thumb(titles, thumb_dna)
+        return jsonify({"ok": True, "items": [{"title": t, "breakdown": b} for t, b in zip(titles, bks)]})
+    except Exception as e:  # noqa
+        return _err(e)
+
+
+@app.route("/api/thumb-breakdown-ref", methods=["POST"])
+def api_thumb_breakdown_ref():
+    """Tai tao thumbnail DOI THU theo DNA kenh minh: NHIN anh thumbnail doi thu, rut Y TUONG hinh anh,
+    dien san o boc tach cho TIEU DE MOI. Nguoi dung duyet/sua roi moi sinh prompt (theo khoa font/bo cuc/nhan vat cua minh).
+    Nhan items=[{title, thumbnail_url}]; loi 1 anh -> roi ve boc tach theo tieu de (co ghi chu), khong lam hong ca loat."""
+    try:
+        import requests as _rq
+        from concurrent.futures import ThreadPoolExecutor
+        data = request.get_json(force=True)
+        items = [it for it in (data.get("items") or []) if isinstance(it, dict) and str(it.get("title") or "").strip()]
+        if not items:
+            raise RuntimeError("Hay chon it nhat 1 tieu de.")
+        if len(items) > 30:
+            raise RuntimeError("Toi da 30 thumbnail moi lan (moi anh la 1 luot AI nhin anh).")
+        thumb_dna = None
+        name = (data.get("name") or "").strip()
+        if name:
+            d = store.get_dna(name, "ai")
+            if d:
+                thumb_dna = d["dna"].get("thumbnail_dna")
+
+        def one(it):
+            title = str(it["title"]).strip()
+            url = str(it.get("thumbnail_url") or "").strip()
+            note = ""
+            try:
+                if not url.startswith(("http://", "https://")):
+                    raise RuntimeError("Dong nay khong co anh thumbnail doi thu.")
+                rimg = _rq.get(url, timeout=30)
+                if rimg.status_code != 200 or not rimg.content:
+                    raise RuntimeError("Khong tai duoc thumbnail doi thu.")
+                bk = image_dna.breakdown_from_reference_thumb(rimg.content, title, thumb_dna)
+                return {"title": title, "breakdown": bk, "from_ref": True}
+            except Exception as e:  # noqa
+                note = _short(e, 200)
+            try:
+                bk = image_dna.decompose_titles_for_thumb([title], thumb_dna)[0]
+            except Exception as e2:  # noqa
+                return {"title": title, "breakdown": None, "error": _short(e2, 200)}
+            return {"title": title, "breakdown": bk, "from_ref": False, "note": note}
+
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            out = list(ex.map(one, items))
+        return jsonify({"ok": True, "items": out})
+    except Exception as e:  # noqa
+        return _err(e)
+
+
 @app.route("/api/ai-thumb-from-title", methods=["POST"])
 def api_ai_thumb_from_title():
     """Tab AI: tieu de -> 1 prompt thumbnail (AI style, CO CHU) theo DNA du an AI."""
@@ -506,10 +577,9 @@ def api_ai_thumb_from_title():
         thumb_dna = None
         name = (data.get("name") or "").strip()
         if name:
-            d = store.get_dna(name, "ai")
-            if d:
-                thumb_dna = d["dna"].get("thumbnail_dna")
-        result = image_dna.thumbnail_prompt_from_dna(title, thumb_dna)
+            thumb_dna = image_dna.ensure_scene_slot(name)   # mau bo cuc cu -> tu nang cap o [[SCENE]] (1 lan)
+        bk = data.get("breakdown") if isinstance(data.get("breakdown"), dict) else None
+        result = image_dna.thumbnail_prompt_from_dna(title, thumb_dna, breakdown=bk)
         return jsonify({"ok": True, **result})
     except Exception as e:  # noqa
         return _err(e)

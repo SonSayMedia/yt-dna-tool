@@ -74,12 +74,29 @@ BƯỚC 3 — QUÉT TỪ KHÓA → TÁI TẠO TIÊU ĐỀ
 BƯỚC 4 — TẠO PROMPT THUMBNAIL
    - Ở bảng kết quả, TÍCH CHỌN những tiêu đề ưng ý (hoặc "Chọn tất cả").
    - Bấm "🖼️ Làm thumb cả loạt" → tool nhảy sang mục "Tiêu đề → Prompt Thumbnail".
-   - Chọn DNA thumbnail ở ô "Dùng dự án nào?" rồi bấm "Sinh prompt hàng loạt".
+   - Chọn DNA thumbnail ở ô "Dùng dự án nào?" rồi bấm "① Bóc tách tất cả".
+   - Tool bóc tách TỪNG tiêu đề theo công thức:
+        ① Vấn đề · Khoảng trống tò mò · Bối cảnh · Tử huyệt (Sợ hãi/Tò mò/Tham lam/Cảnh giác)
+        ② Suy ra hình: Chủ thể ← Vấn đề · Hành động/biểu tượng ← Tò mò
+                       · Cảm xúc ← Tử huyệt · Thế giới cảnh ← Bối cảnh
+   - XEM VÀ SỬA các ô chưa ưng (đặc biệt phần ② Suy ra hình), rồi bấm
+     "② Sinh prompt hàng loạt". Muốn bỏ qua bước duyệt: bấm "⚡ Sinh luôn".
+   - Cảnh BÁM NỘI DUNG TIÊU ĐỀ (tiêu đề hiện đại → cảnh hiện đại). Kênh chỉ giữ:
+     phong cách vẽ, màu, bố cục, font chữ và nhân vật cố định.
    - Nhận prompt tiếng Anh theo đúng thứ tự tiêu đề. Chữ trên thumbnail viết CÙNG
      NGÔN NGỮ với tiêu đề (vd tiêu đề tiếng Tây Ban Nha → chữ tiếng Tây Ban Nha).
    - Bấm "Copy tất cả" / "Tải .txt" / "Gửi lên Google Sheet" → dán prompt vào
      Google Flow (hoặc ChatGPT / Gemini) để ra ảnh.
-   - Làm 1 tiêu đề lẻ: chọn "Tạo đơn" ở đầu trang.
+   - Làm 1 tiêu đề lẻ: chọn "Tạo đơn" ở đầu trang (cũng 2 bước: Bóc tách → Sinh prompt).
+
+   TÁI TẠO THUMBNAIL CỦA ĐỐI THỦ THEO DNA CỦA BẠN (tùy chọn):
+   - Bảng kết quả có cột "Thumbnail" (ảnh gốc của video đối thủ). Dưới mỗi ảnh có nút
+     "🎨 Tái tạo theo DNA": AI NHÌN ảnh đó, lấy Ý TƯỞNG (chủ thể, hành động, cảm xúc) rồi điền
+     sẵn bảng bóc tách cho TIÊU ĐỀ MỚI của bạn → bạn sửa → sinh prompt theo font/bố cục/nhân vật
+     của kênh bạn. (Ở bảng "Viết lại tiêu đề" cũng có, khi bạn dán LINK video.)
+   - Làm cả loạt: sau khi bấm "Làm thumb cả loạt", tick ô "Lấy ý tưởng từ thumbnail đối thủ"
+     rồi bấm "① Bóc tách tất cả" (mỗi ảnh tốn thêm ~5–10 giây).
+   - Chỉ MƯỢN Ý TƯỞNG: tool không chép chữ, nhân vật, logo hay gương mặt người thật của đối thủ.
 
 💡 MẸO: "khuôn tiêu đề" (Bước 1) và "DNA thumbnail" (Bước 2) là 2 kho ĐỘC LẬP.
    Bạn có thể lấy tiêu đề theo kênh A và thumbnail theo kênh B cho cùng 1 ngách.

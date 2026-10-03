@@ -23,7 +23,9 @@ Phần mềm chạy ngay trên máy của bạn (localhost), làm **2 việc ch�
 1. **Phân tích DNA kênh** — dán link kênh đối thủ → rút *khuôn tiêu đề* (độ dài, tử huyệt, giọng điệu, khung xương, **từ khóa chiến thắng của kênh**).
 2. **Quét ảnh thumb** — dán link kênh (khuyên dùng, tự lấy ~20 thumbnail nhiều view) hoặc tải ảnh lên → *DNA thumbnail* (font, bố cục, màu, nhân vật cố định...).
 3. **Quét từ khóa → tái tạo** — nhập từ khóa, chọn mốc thời gian (7 ngày … 3 năm, hoặc Trend 48h), loại video, ngôn ngữ → tool tìm video nhiều view và tạo tiêu đề mới theo khuôn. Từ khóa bạn gõ là **từ khóa chính**: tiêu đề mới luôn chứa nó trong 50 ký tự đầu.
-4. **Tích chọn tiêu đề → "🖼️ Làm thumb cả loạt"** — ra prompt thumbnail cho cả loạt, copy / tải `.txt` hoặc gửi thẳng lên Google Sheet.
+4. **Tích chọn tiêu đề → "🖼️ Làm thumb cả loạt"** — tool **bóc tách từng tiêu đề theo công thức** (vấn đề · khoảng trống tò mò · bối cảnh · tử huyệt → suy ra chủ thể · hành động · cảm xúc · thế giới cảnh) để bạn **xem và sửa**, rồi mới **sinh prompt** cho cả loạt. Cảnh luôn **bám nội dung tiêu đề**; kênh chỉ giữ phong cách vẽ, màu, bố cục, font và nhân vật cố định. Kết quả copy / tải `.txt` / gửi Google Sheet.
+
+🎨 **Tái tạo thumbnail đối thủ theo DNA của bạn**: bảng kết quả có cột *Thumbnail*; bấm **"Tái tạo theo DNA"** dưới ảnh (hoặc tick *Lấy ý tưởng từ thumbnail đối thủ* khi làm cả loạt) → AI nhìn ảnh, chỉ mượn **ý tưởng** (chủ thể · hành động · cảm xúc) và điền sẵn bóc tách cho tiêu đề mới; phong cách/bố cục/font/nhân vật vẫn theo DNA của bạn, không chép chữ/nhân vật/logo của đối thủ.
 
 Ngoài ra: **Viết lại tiêu đề** (dán tiêu đề hoặc link video bất kỳ, có ô *Từ khóa chính* tùy chọn) và **Lịch sử tiêu đề** (tự lưu, tìm lại được).
 

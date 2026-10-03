@@ -51,10 +51,8 @@ def _do_aititles(it):
     """Tab AI: 1 tieu de -> 1 prompt thumbnail theo DNA phong cach (store 'ai')."""
     dna = None
     if it.get("dna_name"):
-        d = store.get_dna(it["dna_name"], "ai")
-        if d:
-            dna = d["dna"].get("thumbnail_dna")
-    r = image_dna.thumbnail_prompt_from_dna(it["title"], dna)
+        dna = image_dna.ensure_scene_slot(it["dna_name"])   # mau bo cuc cu -> tu nang cap o [[SCENE]] (1 lan)
+    r = image_dna.thumbnail_prompt_from_dna(it["title"], dna, breakdown=it.get("breakdown"))
     with _LK:
         it["prompt"] = r.get("thumbnail_prompt_en", "")
         it["text_tren_thumb"] = r.get("text_tren_thumb", "")
@@ -131,6 +129,7 @@ def start(kind, items, folder=None, out_dir=None, motion=True):
             "state": "pending", "error": "",
             "prompt": "", "best_pos": "", "ly_do": "", "chu_the": "",
             "text_tren_thumb": "", "ngon_ngu": "",
+            "breakdown": it.get("breakdown") if isinstance(it.get("breakdown"), dict) else None,
         })
     if not norm:
         raise RuntimeError("Khong co viec hop le de chay.")
